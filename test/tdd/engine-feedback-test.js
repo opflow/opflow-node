@@ -37,7 +37,7 @@ describe('opflow-engine:', function() {
 			handler.destroy().then(lodash.ary(done, 0));
 		});
 
-		it('filter the failed consumeing data to trash (recycle-bin)', function(done) {
+		it('Result of consume() should be send to Feedback queue', function(done) {
 			var total = 1000;
 			var count = 0;
 			var index = 0;

@@ -1,1 +1,4 @@
-console.log('Comming soon');
+module.exports = {
+	Master: require('./lib/master'),
+	Worker: require('./lib/worker')
+}
