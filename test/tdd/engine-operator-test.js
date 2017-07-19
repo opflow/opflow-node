@@ -14,12 +14,6 @@ var Loadsync = require('loadsync');
 
 describe('opflow-engine:', function() {
 
-	describe('constructor', function() {
-		before(function() {
-			checkSkip.call(this, 'constructor');
-		});
-	});
-
 	describe('consume() method:', function() {
 		var handler;
 
@@ -30,16 +24,11 @@ describe('opflow-engine:', function() {
 		beforeEach(function(done) {
 			handler.ready().then(function() {
 				return handler.purgeChain();
-			}).then(function() {
-				done();
-			});
+			}).then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {
-			handler.destroy().then(function() {
-				debugx.enabled && debugx('Handler has been destroyed');
-				done();
-			});
+			handler.destroy().then(lodash.ary(done, 0));
 		});
 
 		it('preserve the order of elements', function(done) {
@@ -119,19 +108,14 @@ describe('opflow-engine:', function() {
 			Promise.all([
 				handler0.ready(), handler0.purgeChain(),
 				handler1.ready(), handler1.purgeChain()
-			]).then(function() {
-				done();
-			});
+			]).then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {
 			Promise.all([
 				handler0.destroy(),
 				handler1.destroy()
-			]).then(function() {
-				debugx.enabled && debugx('Handler has been destroyed');
-				done();
-			});
+			]).then(lodash.ary(done, 0));
 		});
 
 		it('copy message to another queue (CC)', function(done) {
@@ -188,9 +172,3 @@ describe('opflow-engine:', function() {
 		});
 	});
 });
-
-var checkSkip = function(name) {
-	if (process.env.TDD_EXEC && process.env.TDD_EXEC.indexOf(name) < 0) {
-		this.skip();
-	}
-}
