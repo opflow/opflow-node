@@ -40,45 +40,73 @@ describe('opflow-master:', function() {
 		it('master request, worker process and response', function(done) {
 			this.timeout(100000);
 			worker.process(function(data, done, notifier) {
-				console.log('Data: %s', data);
-				data = data || {};
-				data = JSON.parse(data);
-				var number = data.number;
-				console.log('Number: %s', number);
-				var result = fibonacci(number, number, {
-					update: function(completed, total) {
-						notifier.progress(completed, total);
-					}
-				});
-				setTimeout(function() {
-					done(null, {result: result});
-				}, 1000);
+				debugx.enabled && debugx('Input data: %s', data);
+				var fibonacci = new Fibonacci(JSON.parse(data));
+				while(fibonacci.next()) {
+					var r = fibonacci.result();
+					notifier.progress(r.step, r.number);
+				};
+				done(null, fibonacci.result());
 			});
-			var input = { number: 10 };
+			var input = { number: 20 };
 			master.execute(input).then(function(job) {
-				job.on('started', function(info) {
-					console.log('Job started');
-				}).on('progress', function(percent, data) {
-					console.log('Job progress: %s', percent);
-				}).on('failed', function(error) {
-					console.log('Job error');
-					done(error);
-				}).on('completed', function(result) {
-					console.log('Job done, result: %s', JSON.stringify(result));
-					done();
-				})
-			})
+				var requestID = 'fibonacci';
+				return new Promise(function(onResolved, onRejected) {
+					var stepTracer = [];
+					job.on('started', function(info) {
+						stepTracer.push({ event: 'started', data: info});
+						debugx.enabled && debugx('Task[%s] started', requestID);
+					}).on('progress', function(percent, data) {
+						stepTracer.push({ event: 'progress', data: {percent: percent}});
+						debugx.enabled && debugx('Task[%s] progress: %s', requestID, percent);
+					}).on('failed', function(error) {
+						stepTracer.push({ event: 'failed', data: error});
+						debugx.enabled && debugx('Task[%s] failed, error: %s', requestID, JSON.stringify(error));
+						onRejected(error);
+					}).on('completed', function(result) {
+						stepTracer.push({ event: 'completed', data: result});
+						debugx.enabled && debugx('Task[%s] done, result: %s', requestID, JSON.stringify(result));
+						onResolved(stepTracer);
+					});
+				});
+			}).then(function(trail) {
+				assert.equal(trail.length, 1 + input.number + 1);
+				assert.equal(trail[0].event, 'started');
+				for(var i=1; i<=input.number; i++) {
+					assert.equal(trail[i].event, 'progress');
+				}
+				assert.equal(trail[input.number + 1].event, 'completed');
+				assert.equal(trail[input.number + 1].data.number, input.number);
+				assert.equal(trail[input.number + 1].data.value, fibonacci(input.number));
+				done(null);
+			}).catch(function(error) {
+				done(error);
+			});
 		});
 	});
 });
 
-function fibonacci(n, max, progressMeter) {
-  if (progressMeter) {
-    progressMeter.update(max - n + 1, max);
-  }
-  if (n == 0 || n == 1) {
-    return n;
-  } else {
-    return fibonacci(n - 1, max, progressMeter) + fibonacci(n - 2);
-  }
+var Fibonacci = function Fibonacci(P) {
+	var n = P && P.number && P.number >= 0 ? P.number : null;
+	var c = 0;
+	var f = 0, f_1 = 0, f_2 = 0;
+
+	this.next = function() {
+		if (c >= n) return false;
+		if (++c < 2) {
+			f = c;
+		} else {
+			f_2 = f_1; f_1 = f; f = f_1 + f_2;
+		}
+		return true;
+	}
+
+	this.result = function() {
+		return { value: f, step: c, number: n };
+	}
+}
+
+var fibonacci = function fibonacci(n) {
+	if (n == 0 || n == 1) return n;
+	else return fibonacci(n - 1) + fibonacci(n - 2);
 }
