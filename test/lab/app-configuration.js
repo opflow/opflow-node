@@ -8,7 +8,8 @@ var baseCfg = {
 	consumer: {
 		queueName: 'tdd-opflow-queue',
 		durable: true,
-		noAck: false
+		noAck: false,
+		binding: true
 	}
 };
 
@@ -16,5 +17,11 @@ module.exports = {
 	extend: function(ext) {
 		ext = ext || {};
 		return lodash.merge({}, baseCfg, ext);
+	},
+	master: function(ext) {
+
+	},
+	worker: function(ext) {
+		
 	}
 };

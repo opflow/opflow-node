@@ -56,13 +56,17 @@ describe('opflow-engine:', function() {
 				return handler.pullout(function(message, info, finish) {
 					var headers = info.properties && info.properties.headers;
 					message = JSON.parse(message);
-					if (headers.error === false) {
-						assert.equal(message.feedback, 'feedback_' + message.code);
-					} else {
-						count++;
-						assert.isTrue(codes.indexOf(message.error_code) >= 0);
+					if (headers.status !== "started") {
+						if (headers.status === "completed") {
+							assert.equal(message.feedback, 'feedback_' + message.code);
+						} else {
+							count++;
+							assert.isTrue(codes.indexOf(message.error_code) >= 0);
+						}
+						index++;
 					}
-					if (++index >= total) {
+					finish();
+					if (index >= total) {
 						assert.equal(count, codes.length);
 						handler.checkChain().then(function(info) {
 							assert.equal(info.messageCount, 0, 'Chain should be empty');
@@ -76,7 +80,7 @@ describe('opflow-engine:', function() {
 					return handler.produce({ code: count, msg: 'Hello world' });
 				});
 			})
-			this.timeout(5*total);
+			this.timeout(500*total);
 		});
 	});
 });
