@@ -50,7 +50,7 @@ describe('opflow-master:', function() {
 			});
 			var input = { number: 20 };
 			master.execute(input).then(function(job) {
-				var requestID = 'fibonacci';
+				var requestID = job.requestId;
 				return new Promise(function(onResolved, onRejected) {
 					var stepTracer = [];
 					job.on('started', function(info) {
