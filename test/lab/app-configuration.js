@@ -5,6 +5,7 @@ var baseCfg = {
 	exchangeType: 'direct',
 	exchangeName: 'tdd-opflow-exchange',
 	routingKey: 'tdd-opflow-defaultkey',
+	delayTime: 0,
 	consumer: {
 		queueName: 'tdd-opflow-queue',
 		durable: true,

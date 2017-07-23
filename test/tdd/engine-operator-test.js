@@ -59,7 +59,7 @@ describe('opflow-engine:', function() {
 							key1: 'test ' + count,
 							key2: 'test ' + (count + 1)
 						}
-					}).delay(1);
+					});
 				});
 			});
 		});
@@ -101,7 +101,7 @@ describe('opflow-engine:', function() {
 			}).then(function() {
 				Promise.mapSeries(lodash.range(total), function(count) {
 					return bog.next().then(function(randobj) {
-						return handler.produce(randobj).delay(1);
+						return handler.produce(randobj);
 					});
 				});
 			});
