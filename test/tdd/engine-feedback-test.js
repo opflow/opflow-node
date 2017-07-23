@@ -46,24 +46,55 @@ describe('opflow-engine:', function() {
 			var ok = handler.consume(function(message, info, finish) {
 				message = JSON.parse(message);
 				message.feedback = 'feedback_' + message.code;
+
+				assert.equal(info.properties.appId, 'engine-feedback-tdd');
+				assert.equal(info.properties.messageId, 'message#' + message.code);
+				assert.deepInclude(info.properties.headers, {
+					key1: 'test ' + message.code,
+					key2: 'test ' + (message.code + 1)
+				});
+				assert.isTrue(Object.keys(info.properties.headers).length >= 2);
+
 				if (codes.indexOf(message.code) < 0) {
-					finish(undefined, message);
+					finish(undefined, message, {
+						key2: 'test ' + (message.code + 2),
+						key3: 'test ' + (message.code + 3),
+					});
 				} else {
 					finish({ error_code: message.code });
 				}
 			});
 			ok.then(function() {
 				return handler.pullout(function(message, info, finish) {
-					var headers = info.properties && info.properties.headers;
 					message = JSON.parse(message);
-					if (headers.status !== "started") {
-						if (headers.status === "completed") {
-							assert.equal(message.feedback, 'feedback_' + message.code);
-						} else {
-							count++;
-							assert.isTrue(codes.indexOf(message.error_code) >= 0);
-						}
+					var message_code = parseInt(info.properties.correlationId);
+					assert.equal(info.properties.appId, 'engine-feedback-tdd');
+					assert.equal(info.properties.messageId, 'message#' + message_code);
+					var headers = info.properties && info.properties.headers;
+					if (headers.status === "started") {
+						assert.deepInclude(headers, {
+							key1: 'test ' + message_code,
+							key2: 'test ' + (message_code + 1)
+						});
+					} else {
 						index++;
+					}
+					if (headers.status === "failed") {
+						count++;
+						assert.deepInclude(headers, {
+							key1: 'test ' + message_code,
+							key2: 'test ' + (message_code + 1)
+						});
+						assert.isTrue(codes.indexOf(message.error_code) >= 0);
+					}
+					if (headers.status === "completed") {
+						assert.equal(message.code, message_code);
+						assert.deepInclude(headers, {
+							key1: 'test ' + message_code,
+							key2: 'test ' + (message_code + 2),
+							key3: 'test ' + (message_code + 3)
+						});
+						assert.equal(message.feedback, 'feedback_' + message_code);
 					}
 					finish();
 					if (index >= total) {
@@ -77,7 +108,17 @@ describe('opflow-engine:', function() {
 			})
 			ok.then(function() {
 				Promise.mapSeries(lodash.range(total), function(count) {
-					return handler.produce({ code: count, msg: 'Hello world' });
+					return handler.produce({
+						code: count, msg: 'Hello world'
+					}, {
+						appId: 'engine-feedback-tdd',
+						messageId: 'message#' + count,
+						correlationId: JSON.stringify(count),
+						headers: {
+							key1: 'test ' + count,
+							key2: 'test ' + (count + 1)
+						}
+					});
 				});
 			})
 			this.timeout(500*total);

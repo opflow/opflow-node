@@ -35,13 +35,31 @@ describe('opflow-engine:', function() {
 			var total = 10;
 			var index = 0;
 			handler.consume(function(message, info, finish) {
+				var message_code = parseInt(info.properties.correlationId);
 				message = JSON.parse(message);
 				assert(message.code === index++);
+				assert.equal(info.properties.appId, 'engine-operator-tdd');
+				assert.equal(info.properties.messageId, 'message#' + message_code);
+				assert.deepInclude(info.properties.headers, {
+					key1: 'test ' + message_code,
+					key2: 'test ' + (message_code + 1)
+				});
+				assert.isTrue(Object.keys(info.properties.headers).length === 2);
 				finish();
 				if (index >= total) done();
 			}).then(function() {
 				Promise.mapSeries(lodash.range(total), function(count) {
-					return handler.produce({ code: count, msg: 'Hello world' }).delay(1);
+					return handler.produce({
+						code: count, msg: 'Hello world'
+					}, {
+						appId: 'engine-operator-tdd',
+						messageId: 'message#' + count,
+						correlationId: JSON.stringify(count),
+						headers: {
+							key1: 'test ' + count,
+							key2: 'test ' + (count + 1)
+						}
+					}).delay(1);
 				});
 			});
 		});
