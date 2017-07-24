@@ -18,7 +18,9 @@ describe('opflow-engine:', function() {
 		var handler;
 
 		before(function() {
-			handler = new OpflowEngine(appCfg.extend());
+			handler = new OpflowEngine(appCfg.extend({
+				exchangeQuota: 5
+			}));
 		});
 
 		beforeEach(function(done) {

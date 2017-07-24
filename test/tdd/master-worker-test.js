@@ -38,8 +38,8 @@ describe('opflow-master:', function() {
 
 		afterEach(function(done) {
 			Promise.all([
-				master.destroy(),
-				worker.destroy()
+				master.purge(), master.destroy(),
+				worker.purge(), worker.destroy()
 			]).then(lodash.ary(done, 0));
 		});
 
@@ -56,34 +56,9 @@ describe('opflow-master:', function() {
 			});
 			var input = { number: 20 };
 			master.execute(input).then(function(job) {
-				var requestID = job.requestId;
-				return new Promise(function(onResolved, onRejected) {
-					var stepTracer = [];
-					job.on('started', function(info) {
-						stepTracer.push({ event: 'started', data: info});
-						debugx.enabled && debugx('Task[%s] started', requestID);
-					}).on('progress', function(percent, data) {
-						stepTracer.push({ event: 'progress', data: {percent: percent}});
-						debugx.enabled && debugx('Task[%s] progress: %s', requestID, percent);
-					}).on('failed', function(error) {
-						stepTracer.push({ event: 'failed', data: error});
-						debugx.enabled && debugx('Task[%s] failed, error: %s', requestID, JSON.stringify(error));
-						onRejected(error);
-					}).on('completed', function(result) {
-						stepTracer.push({ event: 'completed', data: result});
-						debugx.enabled && debugx('Task[%s] done, result: %s', requestID, JSON.stringify(result));
-						onResolved(stepTracer);
-					});
-				});
+				return processTask(job);
 			}).then(function(trail) {
-				assert.equal(trail.length, 1 + input.number + 1);
-				assert.equal(trail[0].event, 'started');
-				for(var i=1; i<=input.number; i++) {
-					assert.equal(trail[i].event, 'progress');
-				}
-				assert.equal(trail[input.number + 1].event, 'completed');
-				assert.equal(trail[input.number + 1].data.number, input.number);
-				assert.equal(trail[input.number + 1].data.value, fibonacci(input.number));
+				validateResult({input, trail});
 				done(null);
 			}).catch(function(error) {
 				done(error);
@@ -123,9 +98,9 @@ describe('opflow-master:', function() {
 
 		afterEach(function(done) {
 			Promise.all([
-				master.destroy(),
-				worker1.destroy(),
-				worker2.destroy()
+				master.purge(), master.destroy(),
+				worker1.purge(), worker1.destroy(),
+				worker2.purge(), worker2.destroy()
 			]).then(lodash.ary(done, 0));
 		});
 
@@ -136,44 +111,13 @@ describe('opflow-master:', function() {
 			var data = [10, 8, 20, 15, 11, 19, 25, 12, 16, 25, 34, 28].map(function(n) { return { number: n }});
 			var promises = Promise.map(data, function(input) {
 				return master.execute(input).then(function(job) {
-					var requestID = job.requestId;
-					return new Promise(function(onResolved, onRejected) {
-						var stepTracer = [];
-						job.on('started', function(info) {
-							stepTracer.push({ event: 'started', data: info});
-							debugx.enabled && debugx('Task[%s] started', requestID);
-						}).on('progress', function(percent, data) {
-							stepTracer.push({ event: 'progress', data: {percent: percent}});
-							debugx.enabled && debugx('Task[%s] progress: %s', requestID, percent);
-						}).on('failed', function(error) {
-							stepTracer.push({ event: 'failed', data: error});
-							debugx.enabled && debugx('Task[%s] failed, error: %s', requestID, JSON.stringify(error));
-							onRejected(error);
-						}).on('completed', function(result) {
-							stepTracer.push({ event: 'completed', data: result});
-							debugx.enabled && debugx('Task[%s] done, result: %s', requestID, JSON.stringify(result));
-							setTimeout(function() {
-								onResolved(stepTracer)
-							}, lodash.random(100));
-						});
+					return processTask(job).then(function(trail) {
+						return { input: input, trail: trail }
 					});
-				}).then(function(trail) {
-					return { input: input, trail: trail }
 				});
 			}, {concurrency: 4});
 			Promise.all(promises).then(function(results) {
-				lodash.forEach(results, function(result) {
-					var input = result.input;
-					var trail = result.trail;
-					assert.equal(trail.length, 1 + input.number + 1);
-					assert.equal(trail[0].event, 'started');
-					for(var i=1; i<=input.number; i++) {
-						assert.equal(trail[i].event, 'progress');
-					}
-					assert.equal(trail[input.number + 1].event, 'completed');
-					assert.equal(trail[input.number + 1].data.number, input.number);
-					assert.equal(trail[input.number + 1].data.value, fibonacci(input.number));
-				});
+				lodash.forEach(results, validateResult);
 				done(null);
 			}).catch(function(error) {
 				done(error);
@@ -181,3 +125,37 @@ describe('opflow-master:', function() {
 		});
 	});
 });
+
+var processTask = function(job) {
+	var requestID = job.requestId;
+	return new Promise(function(onResolved, onRejected) {
+		var stepTracer = [];
+		job.on('started', function(info) {
+			stepTracer.push({ event: 'started', data: info});
+			debugx.enabled && debugx('Task[%s] started', requestID);
+		}).on('progress', function(percent, data) {
+			stepTracer.push({ event: 'progress', data: {percent: percent}});
+			debugx.enabled && debugx('Task[%s] progress: %s', requestID, percent);
+		}).on('failed', function(error) {
+			stepTracer.push({ event: 'failed', data: error});
+			debugx.enabled && debugx('Task[%s] failed, error: %s', requestID, JSON.stringify(error));
+			onRejected(error);
+		}).on('completed', function(result) {
+			stepTracer.push({ event: 'completed', data: result});
+			debugx.enabled && debugx('Task[%s] done, result: %s', requestID, JSON.stringify(result));
+			onResolved(stepTracer);
+		});
+	});
+}
+
+var validateResult = function(result) {
+	var input = result.input, trail = result.trail;
+	assert.equal(trail.length, 1 + input.number + 1);
+	assert.equal(trail[0].event, 'started');
+	for(var i=1; i<=input.number; i++) {
+		assert.equal(trail[i].event, 'progress');
+	}
+	assert.equal(trail[input.number + 1].event, 'completed');
+	assert.equal(trail[input.number + 1].data.number, input.number);
+	assert.equal(trail[input.number + 1].data.value, fibonacci(input.number));
+}
