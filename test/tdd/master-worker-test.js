@@ -47,7 +47,9 @@ describe('opflow-master:', function() {
 			this.timeout(100000);
 			worker.process(taskWorker);
 			var input = { number: 20 };
-			master.execute(input).then(function(job) {
+			master.execute(input, {
+				requestId: 'one-master-single-worker-' + (new Date()).toISOString()
+			}).then(function(job) {
 				return processTask(job);
 			}).then(function(trail) {
 				validateResult({input, trail});
