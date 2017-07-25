@@ -45,15 +45,7 @@ describe('opflow-master:', function() {
 
 		it('master request, worker process and response', function(done) {
 			this.timeout(100000);
-			worker.process(function(data, done, notifier) {
-				debugx.enabled && debugx('Input data: %s', data);
-				var fibonacci = new Fibonacci(JSON.parse(data));
-				while(fibonacci.next()) {
-					var r = fibonacci.result();
-					notifier.progress(r.step, r.number);
-				};
-				done(null, fibonacci.result());
-			});
+			worker.process(taskWorker);
 			var input = { number: 20 };
 			master.execute(input).then(function(job) {
 				return processTask(job);
@@ -68,16 +60,6 @@ describe('opflow-master:', function() {
 
 	describe('one master - multiple workers:', function() {
 		var master, worker1, worker2;
-
-		var taskWorker = function(data, done, notifier) {
-			debugx.enabled && debugx('Input data: %s', data);
-			var fibonacci = new Fibonacci(JSON.parse(data));
-			while(fibonacci.next()) {
-				var r = fibonacci.result();
-				notifier.progress(r.step, r.number);
-			};
-			done(null, fibonacci.result());
-		};
 
 		before(function() {
 			var cfg = appCfg.extend({
@@ -126,23 +108,33 @@ describe('opflow-master:', function() {
 	});
 });
 
+var taskWorker = function(data, info, done, notifier) {
+	debugx.enabled && debugx('Request[%s] worker receives data: %s', info.requestId, data);
+	var fibonacci = new Fibonacci(JSON.parse(data));
+	while(fibonacci.next()) {
+		var r = fibonacci.result();
+		notifier.progress(r.step, r.number);
+	};
+	done(null, fibonacci.result());
+};
+
 var processTask = function(job) {
 	var requestID = job.requestId;
 	return new Promise(function(onResolved, onRejected) {
 		var stepTracer = [];
 		job.on('started', function(info) {
 			stepTracer.push({ event: 'started', data: info});
-			debugx.enabled && debugx('Task[%s] started', requestID);
+			debugx.enabled && debugx('Request[%s] started', requestID);
 		}).on('progress', function(percent, data) {
 			stepTracer.push({ event: 'progress', data: {percent: percent}});
-			debugx.enabled && debugx('Task[%s] progress: %s', requestID, percent);
+			debugx.enabled && debugx('Request[%s] progress: %s', requestID, percent);
 		}).on('failed', function(error) {
 			stepTracer.push({ event: 'failed', data: error});
-			debugx.enabled && debugx('Task[%s] failed, error: %s', requestID, JSON.stringify(error));
+			debugx.enabled && debugx('Request[%s] failed, error: %s', requestID, JSON.stringify(error));
 			onRejected(error);
 		}).on('completed', function(result) {
 			stepTracer.push({ event: 'completed', data: result});
-			debugx.enabled && debugx('Task[%s] done, result: %s', requestID, JSON.stringify(result));
+			debugx.enabled && debugx('Request[%s] done, result: %s', requestID, JSON.stringify(result));
 			onResolved(stepTracer);
 		});
 	});
