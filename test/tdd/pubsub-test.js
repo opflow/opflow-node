@@ -15,7 +15,6 @@ var Loadsync = require('loadsync');
 describe('opflow:', function() {
 
 	describe('pubsub:', function() {
-		var messageTotal = 5;
 		var total = 4;
 		var publisher;
 		var subscribers;
@@ -55,23 +54,98 @@ describe('opflow:', function() {
 		});
 
 		it('Publish to public channel, all of subscribers should receive message', function(done) {
+			var messageTotal = 5;
+			var results = lodash.map(lodash.range(subscribers.length), function() {return new Array()});
 			loadsync = new Loadsync([{
 				name: 'testpubsub',
 				cards: lodash.range(total)
 			}]);
-			var results = lodash.map(lodash.range(subscribers.length), function() {return new Array()});
-			subscribers.forEach(function(subscriber, i) {
-				subscriber.subscribe(function(content, info) {
-					results[i].push(JSON.parse(content.toString()));
-					if (results[i].length >= messageTotal) {
-						loadsync.check(i, 'testpubsub');
-					}
+			loadsync.ready(function(info) {
+				lodash.range(subscribers.length).forEach(function(i) {
+					assert.sameDeepMembers(results[i], lodash.range(messageTotal).map(function(i) {
+						return { count: i, type: 'public' }
+					}));
 				});
+				done();
+			}, 'testpubsub');
+			Promise.resolve().then(function() {
+				return Promise.map(subscribers, function(subscriber, i) {
+					return subscriber.subscribe(function(content, info) {
+						content = JSON.parse(content.toString());
+						if (content.type === 'end') {
+							loadsync.check(i, 'testpubsub');
+						} else {
+							results[i].push(content);
+						}
+					});
+				})
+			}).then(function() {
+				return Promise.mapSeries(lodash.range(messageTotal), function(i) {
+					return publisher.publish({ count: i, type: 'public'});
+				});
+			}).then(function() {
+				return publisher.publish({ type: 'end' });
 			});
-			Promise.mapSeries(lodash.range(messageTotal), function(i) {
-				return publisher.publish({ count: i, type: 'public'});
+			this.timeout(500*total);
+		});
+
+		it('Publish to specific channel, only corresponding subscribers will receive messages', function(done) {
+			var messageTotal = 5;
+			var groupTotal = 3;
+			var privateTotal = 2;
+			var results = lodash.map(lodash.range(subscribers.length), function() {return new Array()});
+			loadsync = new Loadsync([{
+				name: 'testpubsub',
+				cards: lodash.range(total)
+			}]);
+			loadsync.ready(function(info) {
+				assert.equal(results[0].length, messageTotal);
+				assert.equal(results[1].length, messageTotal + groupTotal + privateTotal);
+				assert.equal(results[2].length, messageTotal);
+				assert.equal(results[3].length, messageTotal + groupTotal);
+				lodash.range(subscribers.length).forEach(function(i) {
+					assert.includeDeepMembers(results[i], lodash.range(messageTotal).map(function(i) {
+						return { count: i, type: 'public' }
+					}));
+				});
+				[1, 3].forEach(function(i) {
+					assert.includeDeepMembers(results[i], lodash.range(groupTotal).map(function(i) {
+						return { count: i, type: 'group' }
+					}));
+				});
+				[1].forEach(function(i) {
+					assert.includeDeepMembers(results[i], lodash.range(privateTotal).map(function(i) {
+						return { count: i, type: 'private' }
+					}));
+				});
+				done();
+			}, 'testpubsub');
+			Promise.resolve().then(function() {
+				return Promise.map(subscribers, function(subscriber, i) {
+					return subscriber.subscribe(function(content, info) {
+						content = JSON.parse(content.toString());
+						if (content.type === 'end') {
+							loadsync.check(i, 'testpubsub');
+						} else {
+							results[i].push(content);
+						}
+					});
+				})
+			}).then(function() {
+				return Promise.mapSeries(lodash.range(messageTotal), function(i) {
+					return publisher.publish({ count: i, type: 'public'}, 'tdd-opflow-pubsub-public');
+				});
+			}).then(function() {
+				return Promise.mapSeries(lodash.range(groupTotal), function(i) {
+					return publisher.publish({ count: i, type: 'group'}, 'tdd-opflow-pubsub-group#1');
+				});
+			}).then(function() {
+				return Promise.mapSeries(lodash.range(privateTotal), function(i) {
+					return publisher.publish({ count: i, type: 'private'}, 'tdd-opflow-pubsub-private#1');
+				});
+			}).then(function() {
+				return publisher.publish({ type: 'end' });
 			});
-			loadsync.ready(lodash.ary(done, 0), 'testpubsub');
 			this.timeout(500*total);
 		});
 	});
