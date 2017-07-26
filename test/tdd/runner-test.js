@@ -45,14 +45,17 @@ describe('opflow-master:', function() {
 
 		it('master request, worker process and response', function(done) {
 			this.timeout(100000);
-			worker.process(taskWorker);
 			var input = { number: 20 };
-			master.execute(input, {
-				requestId: 'one-master-single-worker-' + (new Date()).toISOString()
-			}).then(function(job) {
-				return processTask(job);
-			}).then(function(trail) {
-				validateResult({input, trail});
+			Promise.all([worker.process(taskWorker)]).then(function() {
+				return master.execute(input, {
+					requestId: 'one-master-single-worker-' + (new Date()).toISOString()
+				}).then(function(job) {
+					return processTask(job);
+				}).then(function(trail) {
+					return {input, trail};
+				});
+			}).then(function(result) {
+				validateResult(result);
 				done(null);
 			}).catch(function(error) {
 				done(error);
@@ -90,17 +93,19 @@ describe('opflow-master:', function() {
 
 		it('master request to multiple workers, it should return correct results', function(done) {
 			this.timeout(100000);
-			worker1.process(taskWorker);
-			worker2.process(taskWorker);
-			var data = [10, 8, 20, 15, 11, 19, 25, 12, 16, 25, 34, 28].map(function(n) { return { number: n }});
-			var promises = Promise.map(data, function(input) {
-				return master.execute(input).then(function(job) {
-					return processTask(job).then(function(trail) {
-						return { input: input, trail: trail }
+			var data = [10, 8, 20, 15, 11, 19, 25, 12, 16, 35, 34, 28].map(function(n) { return { number: n }});
+			Promise.all([
+				worker1.process(taskWorker),
+				worker2.process(taskWorker)
+			]).then(function() {
+				return Promise.map(data, function(input) {
+					return master.execute(input).then(function(job) {
+						return processTask(job).then(function(trail) {
+							return { input: input, trail: trail }
+						});
 					});
-				});
-			}, {concurrency: 4});
-			Promise.all(promises).then(function(results) {
+				}, {concurrency: 4});
+			}).then(function(results) {
 				lodash.forEach(results, validateResult);
 				done(null);
 			}).catch(function(error) {
