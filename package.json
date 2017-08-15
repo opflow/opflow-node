@@ -1,0 +1,26 @@
+{
+  "name": "opflow",
+  "version": "0.1.0",
+  "description": "A simple distributed operation flow",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "devebot",
+  "license": "MIT",
+  "dependencies": {
+    "amqplib": "^0.5.1",
+    "bluebird": "^3.5.0",
+    "death": "^1.1.0",
+    "debug": "^2.6.8",
+    "locks": "^0.2.2",
+    "lodash": "^4.17.4",
+    "uuid": "^3.1.0"
+  },
+  "devDependencies": {
+    "chai": "^4.1.0",
+    "faker": "^4.1.0",
+    "loadsync": "^0.1.8",
+    "mocha": "^3.4.2"
+  }
+}
