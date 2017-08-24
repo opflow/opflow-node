@@ -28,8 +28,8 @@ describe('opflow-master:', function() {
 					noAck: false
 				}
 			});
-			master = new opflow.Master(cfg);
-			worker = new opflow.Worker(cfg);
+			master = new opflow.RpcMaster(cfg);
+			worker = new opflow.RpcWorker(cfg);
 		});
 
 		beforeEach(function(done) {
@@ -74,9 +74,9 @@ describe('opflow-master:', function() {
 					noAck: false
 				}
 			});
-			master = new opflow.Master(cfg);
-			worker1 = new opflow.Worker(cfg);
-			worker2 = new opflow.Worker(cfg);
+			master = new opflow.RpcMaster(cfg);
+			worker1 = new opflow.RpcWorker(cfg);
+			worker2 = new opflow.RpcWorker(cfg);
 		});
 
 		beforeEach(function(done) {

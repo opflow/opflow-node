@@ -7,7 +7,7 @@ var expect = require('chai').expect;
 var faker = require('faker');
 var util = require('util');
 var debugx = require('debug')('opflow:pubsub:test');
-var Pubsub = require('../../lib/pubsub');
+var PubsubHandler = require('../../lib/pubsub');
 var appCfg = require('../lab/app-configuration');
 var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
@@ -22,7 +22,7 @@ describe('opflow:', function() {
 
 		before(function() {
 			subscribers = lodash.range(total).map(function(i) {
-				return new Pubsub({
+				return new PubsubHandler({
 					uri: 'amqp://master:zaq123edcx@192.168.56.56?frameMax=0x1000',
 					exchangeName: 'tdd-opflow-publisher',
 					routingKey: 'tdd-opflow-pubsub-public',
@@ -34,7 +34,7 @@ describe('opflow:', function() {
 					}
 				});
 			});
-			publisher = new Pubsub({
+			publisher = new PubsubHandler({
 				uri: 'amqp://master:zaq123edcx@192.168.56.56?frameMax=0x1000',
 				exchangeName: 'tdd-opflow-publisher',
 				routingKey: 'tdd-opflow-pubsub-public'
