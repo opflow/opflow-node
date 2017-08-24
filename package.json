@@ -1,6 +1,6 @@
 {
   "name": "opflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A simple distributed operation flow",
   "main": "index.js",
   "scripts": {
