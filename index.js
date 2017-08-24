@@ -1,7 +1,6 @@
 module.exports = {
 	Engine: require('./lib/engine'),
-	Master: require('./lib/master'),
-	Worker: require('./lib/worker'),
-	Pubsub: require('./lib/pubsub'),
-	Runner: require('./lib/runner')
+	PubsubHandler: require('./lib/pubsub'),
+	RpcMaster: require('./lib/rpc_master'),
+	RpcWorker: require('./lib/rpc_worker')
 }
