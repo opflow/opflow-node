@@ -74,13 +74,14 @@ describe('opflow:', function() {
 			}, 'testpubsub');
 			Promise.resolve().then(function() {
 				return Promise.map(subscribers, function(subscriber, i) {
-					return subscriber.subscribe(function(content, info) {
-						debugx.enabled && debugx('#%s - Message: %s', i, content.toString());
-						content = JSON.parse(content.toString());
-						if (content.type === 'end') {
+					return subscriber.subscribe(function(body, headers, finish) {
+						debugx.enabled && debugx('#%s - Message: %s', i, body.toString());
+						body = JSON.parse(body.toString());
+						finish();
+						if (body.type === 'end1') {
 							loadsync.check(i, 'testpubsub');
 						} else {
-							results[i].push(content);
+							results[i].push(body);
 						}
 					});
 				})
@@ -89,7 +90,7 @@ describe('opflow:', function() {
 					return publisher.publish({ count: i, type: 'public'});
 				});
 			}).then(function() {
-				return publisher.publish({ type: 'end' });
+				return publisher.publish({ type: 'end1' });
 			});
 			this.timeout(600000);
 		});
@@ -131,12 +132,13 @@ describe('opflow:', function() {
 			}, 'testpubsub');
 			Promise.resolve().then(function() {
 				return Promise.map(subscribers, function(subscriber, i) {
-					return subscriber.subscribe(function(content, info) {
-						content = JSON.parse(content.toString());
-						if (content.type === 'end') {
+					return subscriber.subscribe(function(body, headers, finish) {
+						body = JSON.parse(body.toString());
+						finish();
+						if (body.type === 'end2') {
 							loadsync.check(i, 'testpubsub');
 						} else {
-							results[i].push(content);
+							results[i].push(body);
 						}
 					});
 				})
@@ -153,7 +155,7 @@ describe('opflow:', function() {
 					return publisher.publish({ count: i, type: 'private'}, {}, 'tdd-opflow-pubsub-private#1');
 				});
 			}).then(function() {
-				return publisher.publish({ type: 'end' });
+				return publisher.publish({ type: 'end2' });
 			});
 			this.timeout(600000);
 		});
