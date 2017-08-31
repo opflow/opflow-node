@@ -20,34 +20,29 @@ describe('opflow-master:', function() {
 	describe('one master - one worker:', function() {
 		var master, worker;
 
-		before(function() {
-			var cfg = appCfg.extend({
-				feedback: {
-					queueName: 'tdd-opflow-feedback',
-					durable: true,
-					noAck: false
-				}
-			});
-			master = new opflow.RpcMaster(cfg);
-			worker = new opflow.RpcWorker(cfg);
-		});
-
 		beforeEach(function(done) {
+			master = new opflow.RpcMaster(appCfg.extend({
+				responseName: 'tdd-opflow-response'
+			}));
+			worker = new opflow.RpcWorker(appCfg.extend({
+				responseName: 'tdd-opflow-response',
+				operatorName: 'tdd-opflow-operator'
+			}));
 			done();
 		});
 
 		afterEach(function(done) {
 			Promise.all([
-				master.purge(), master.destroy(),
-				worker.purge(), worker.destroy()
+				master.destroy(),
+				worker.destroy()
 			]).then(lodash.ary(done, 0));
 		});
 
 		it('master request, worker process and response', function(done) {
 			this.timeout(100000);
 			var input = { number: 20 };
-			Promise.all([worker.process(taskWorker)]).then(function() {
-				return master.execute(input, {
+			Promise.all([worker.process('fibonacci', taskWorker)]).then(function() {
+				return master.request('fibonacci', input, {
 					requestId: 'one-master-single-worker-' + (new Date()).toISOString()
 				}).then(function(job) {
 					return processTask(job);
@@ -67,14 +62,13 @@ describe('opflow-master:', function() {
 		var master, worker1, worker2;
 
 		before(function() {
+			master = new opflow.RpcMaster(appCfg.extend({
+				responseName: 'tdd-opflow-response'
+			}));
 			var cfg = appCfg.extend({
-				feedback: {
-					queueName: 'tdd-opflow-feedback',
-					durable: true,
-					noAck: false
-				}
+				responseName: 'tdd-opflow-response',
+				operatorName: 'tdd-opflow-operator'
 			});
-			master = new opflow.RpcMaster(cfg);
 			worker1 = new opflow.RpcWorker(cfg);
 			worker2 = new opflow.RpcWorker(cfg);
 		});
@@ -85,9 +79,9 @@ describe('opflow-master:', function() {
 
 		afterEach(function(done) {
 			Promise.all([
-				master.purge(), master.destroy(),
-				worker1.purge(), worker1.destroy(),
-				worker2.purge(), worker2.destroy()
+				master.destroy(),
+				worker1.destroy(),
+				worker2.destroy()
 			]).then(lodash.ary(done, 0));
 		});
 
@@ -95,11 +89,11 @@ describe('opflow-master:', function() {
 			this.timeout(100000);
 			var data = [10, 8, 20, 15, 11, 19, 25, 12, 16, 35, 34, 28].map(function(n) { return { number: n }});
 			Promise.all([
-				worker1.process(taskWorker),
-				worker2.process(taskWorker)
+				worker1.process('fibonacci', taskWorker),
+				worker2.process('fibonacci', taskWorker)
 			]).then(function() {
 				return Promise.map(data, function(input) {
-					return master.execute(input).then(function(job) {
+					return master.request('fibonacci', input).then(function(job) {
 						return processTask(job).then(function(trail) {
 							return { input: input, trail: trail }
 						});
@@ -115,14 +109,15 @@ describe('opflow-master:', function() {
 	});
 });
 
-var taskWorker = function(data, info, done, notifier) {
-	debugx.enabled && debugx('Request[%s] worker receives data: %s', info.requestId, data);
-	var fibonacci = new Fibonacci(JSON.parse(data));
+var taskWorker = function(body, headers, response) {
+	debugx.enabled && debugx('Request[%s] worker receives: %s', headers.requestId, body);
+	response.emitStarted();
+	var fibonacci = new Fibonacci(JSON.parse(body));
 	while(fibonacci.next()) {
 		var r = fibonacci.result();
-		notifier.progress(r.step, r.number);
+		response.emitProgress(r.step, r.number);
 	};
-	done(null, fibonacci.result());
+	response.emitCompleted(fibonacci.result());
 };
 
 var processTask = function(job) {
