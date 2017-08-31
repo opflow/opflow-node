@@ -59,7 +59,9 @@ describe('opflow-engine:', function() {
 				});
 				assert.isTrue(Object.keys(msg.properties.headers).length === 2);
 				finish();
-				if (index >= total) done();
+				if (index >= total) {
+					handler.cancelConsumer(info).then(lodash.ary(done, 0));
+				}
 			}, queue).then(function() {
 				Promise.mapSeries(lodash.range(total), function(count) {
 					return handler.produce({
@@ -91,7 +93,7 @@ describe('opflow-engine:', function() {
 				if (count >= max * 10) {
 					debugx.enabled && debugx('All of messages have been processed');
 					assert(idx.length === 0);
-					done();
+					handler.cancelConsumer(info).then(lodash.ary(done, 0));
 				}
 			}, queue).then(function() {
 				Promise.reduce(lodash.range(max), function(state, n) {
@@ -111,7 +113,9 @@ describe('opflow-engine:', function() {
 				var message = JSON.parse(msg.content);
 				assert(message.code === index++);
 				finish();
-				if (index >= total) done();
+				if (index >= total) {
+					handler.cancelConsumer(info).then(lodash.ary(done, 0));
+				}
 			}, queue).then(function() {
 				Promise.mapSeries(lodash.range(total), function(count) {
 					return bog.next().then(function(randobj) {
@@ -186,7 +190,11 @@ describe('opflow-engine:', function() {
 				var message = JSON.parse(msg.content.toString());
 				assert(message.code === index0++);
 				finish();
-				if (index0 >= total) loadsync.check('handler0', 'testsync');
+				if (index0 >= total) {
+					handler0.cancelConsumer(info).then(function() {
+						loadsync.check('handler0', 'testsync');
+					});
+				}
 			}, queue0);
 
 			var index1 = 0;
@@ -194,7 +202,11 @@ describe('opflow-engine:', function() {
 				var message = JSON.parse(msg.content.toString());
 				assert(message.code === index1++);
 				finish();
-				if (index1 >= total) loadsync.check('handler1', 'testsync');
+				if (index1 >= total) {
+					handler1.cancelConsumer(info).then(function() {
+						loadsync.check('handler1', 'testsync');	
+					});
+				}
 			}, queue1);
 
 			loadsync.ready(function(info) {
@@ -215,7 +227,9 @@ describe('opflow-engine:', function() {
 				var message = JSON.parse(msg.content.toString());
 				assert(message.code === index++);
 				finish();
-				if (index >= total) done();
+				if (index >= total) {
+					handler1.cancelConsumer(info).then(lodash.ary(done, 0));
+				}
 			}, queue1);
 			ok1.then(function() {
 				lodash.range(total).forEach(function(count) {
