@@ -1,3 +1,3 @@
 # opflow
 
-> A simple distributed operation flow
+> Devebot Opflow for Node.js
