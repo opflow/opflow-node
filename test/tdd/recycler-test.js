@@ -61,7 +61,6 @@ describe('opflow-engine:', function() {
 						(hasDone++ === 0) && done();
 					});
 				}
-				console.log("Index: %s", index);
 			});
 			ok.then(function() {
 				Promise.mapSeries(lodash.range(total), function(count) {
