@@ -28,11 +28,11 @@ describe('opflow-engine:', function() {
 				recyclebinName: 'tdd-opflow-recyclebin',
 				redeliveredLimit: 3
 			});
-			recycler = new Recycler(appCfg.extend({
+			recycler = new Recycler({
 				uri: 'amqp://master:zaq123edcx@192.168.56.56?frameMax=0x1000',
 				subscriberName: 'tdd-opflow-subscriber',
 				recyclebinName: 'tdd-opflow-recyclebin'
-			}));
+			});
 			Promise.all([
 				handler.ready(),
 				recycler.purgeSubscriber(),
@@ -118,20 +118,24 @@ describe('opflow-engine:', function() {
 		});
 	});
 
-	describe.skip('garbage recovery:', function() {
+	describe('garbage recovery:', function() {
 		var handler;
 		var recycler;
 
 		beforeEach(function(done) {
-			handler = new PubsubHandler(appCfg.extend({
+			handler = new PubsubHandler({
+				uri: 'amqp://master:zaq123edcx@192.168.56.56?frameMax=0x1000',
+				exchangeName: 'tdd-opflow-publisher',
+				routingKey: 'tdd-opflow-pubsub-public',
 				subscriberName: 'tdd-opflow-subscriber',
 				recyclebinName: 'tdd-opflow-recyclebin',
 				redeliveredLimit: 3
-			}));
-			recycler = new Recycler(appCfg.extend({
+			});
+			recycler = new Recycler({
+				uri: 'amqp://master:zaq123edcx@192.168.56.56?frameMax=0x1000',
 				subscriberName: 'tdd-opflow-subscriber',
 				recyclebinName: 'tdd-opflow-recyclebin'
-			}));
+			});
 			Promise.all([
 				handler.ready(),
 				recycler.purgeSubscriber(),
