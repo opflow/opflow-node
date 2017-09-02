@@ -29,7 +29,7 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			this.timeout(60000);
-			handler.destroy().then(lodash.ary(done, 0));
+			handler.close().then(lodash.ary(done, 0));
 		});
 
 		it('no limit of consumers', function(done) {
@@ -75,7 +75,7 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			this.timeout(60000);
-			handler.destroy().then(lodash.ary(done, 0));
+			handler.close().then(lodash.ary(done, 0));
 		});
 
 		it('limit of consumers to ' + limit, function(done) {

@@ -42,7 +42,7 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			Promise.all([
-				handler.destroy(),
+				handler.close(),
 				recycler.close()
 			]).then(lodash.ary(done, 0));
 		})
@@ -144,7 +144,7 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			Promise.all([
-				handler.destroy(),
+				handler.close(),
 				recycler.close()
 			]).then(lodash.ary(done, 0));
 		});

@@ -35,8 +35,8 @@ describe('opflow-master:', function() {
 
 		afterEach(function(done) {
 			Promise.all([
-				master.destroy(),
-				worker.destroy()
+				master.close(),
+				worker.close()
 			]).then(lodash.ary(done, 0));
 		});
 
@@ -84,9 +84,9 @@ describe('opflow-master:', function() {
 
 		afterEach(function(done) {
 			Promise.all([
-				worker1.destroy(),
-				worker2.destroy(),
-				master.destroy()
+				worker1.close(),
+				worker2.close(),
+				master.close()
 			]).then(lodash.ary(done, 0));
 		});
 

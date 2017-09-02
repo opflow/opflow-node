@@ -53,7 +53,7 @@ describe('opflow:', function() {
 
 		afterEach(function(done) {
 			Promise.all(lodash.map(subscribers, function(subscriber) {
-				return subscriber.destroy();
+				return subscriber.close();
 			})).then(lodash.ary(done, 0));
 		});
 

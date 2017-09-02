@@ -41,7 +41,7 @@ describe('opflow-engine:', function() {
 		});
 
 		afterEach(function(done) {
-			handler.destroy().then(lodash.ary(done, 0));
+			handler.close().then(lodash.ary(done, 0));
 		});
 
 		it('preserve the order of elements', function(done) {
@@ -172,8 +172,8 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			Promise.all([
-				handler0.destroy(),
-				handler1.destroy()
+				handler0.close(),
+				handler1.close()
 			]).then(lodash.ary(done, 0));
 		});
 
