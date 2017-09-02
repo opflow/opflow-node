@@ -26,9 +26,6 @@ describe('opflow:', function() {
 				exchangeName: 'tdd-opflow-publisher',
 				routingKey: 'tdd-opflow-pubsub-public'
 			});
-		});
-
-		beforeEach(function(done) {
 			subscribers = lodash.range(total).map(function(i) {
 				return new PubsubHandler({
 					uri: 'amqp://master:zaq123edcx@192.168.56.56?frameMax=0x1000',
@@ -39,6 +36,9 @@ describe('opflow:', function() {
 					recyclebinName: 'tdd-opflow-recyclebin'
 				});
 			});
+		});
+
+		beforeEach(function(done) {
 			Promise.all(lodash.flatten(lodash.map(subscribers, function(subscriber) {
 				return [ 
 					subscriber.executor.purgeQueue({
@@ -48,13 +48,17 @@ describe('opflow:', function() {
 						queueName: subscriber.recyclebinName
 					})
 				];
-			}))).then(lodash.ary(done, 0));
+			}))).then(function() {
+				return publisher.ready();
+			}).then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {
 			Promise.all(lodash.map(subscribers, function(subscriber) {
 				return subscriber.close();
-			})).then(lodash.ary(done, 0));
+			})).then(function() {
+				return publisher.close();
+			}).then(lodash.ary(done, 0));
 		});
 
 		it('Publish to public channel, all of subscribers should receive message', function(done) {

@@ -20,7 +20,7 @@ describe('opflow-master:', function() {
 	describe('one master - one worker:', function() {
 		var master, worker;
 
-		beforeEach(function(done) {
+		before(function() {
 			master = new opflow.RpcMaster(appCfg.extend({
 				routingKey: 'tdd-opflow-rpc',
 				responseName: 'tdd-opflow-response'
@@ -30,7 +30,10 @@ describe('opflow-master:', function() {
 				responseName: 'tdd-opflow-response',
 				operatorName: 'tdd-opflow-operator'
 			}));
-			done();
+		});
+
+		beforeEach(function(done) {
+			Promise.all([ master.ready() ]).then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {
@@ -79,7 +82,7 @@ describe('opflow-master:', function() {
 		});
 
 		beforeEach(function(done) {
-			done();
+			Promise.all([ master.ready() ]).then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {

@@ -19,7 +19,7 @@ describe('opflow-engine:', function() {
 		var handler;
 		var recycler;
 
-		beforeEach(function(done) {
+		before(function() {
 			handler = new PubsubHandler({
 				uri: 'amqp://master:zaq123edcx@192.168.56.56?frameMax=0x1000',
 				exchangeName: 'tdd-opflow-publisher',
@@ -33,6 +33,9 @@ describe('opflow-engine:', function() {
 				subscriberName: 'tdd-opflow-subscriber',
 				recyclebinName: 'tdd-opflow-recyclebin'
 			});
+		});
+
+		beforeEach(function(done) {
 			Promise.all([
 				handler.ready(),
 				recycler.purgeSubscriber(),
@@ -121,7 +124,7 @@ describe('opflow-engine:', function() {
 		var handler;
 		var recycler;
 
-		beforeEach(function(done) {
+		before(function() {
 			handler = new PubsubHandler({
 				uri: 'amqp://master:zaq123edcx@192.168.56.56?frameMax=0x1000',
 				exchangeName: 'tdd-opflow-publisher',
@@ -135,6 +138,9 @@ describe('opflow-engine:', function() {
 				subscriberName: 'tdd-opflow-subscriber',
 				recyclebinName: 'tdd-opflow-recyclebin'
 			});
+		});
+
+		beforeEach(function(done) {
 			Promise.all([
 				handler.ready(),
 				recycler.purgeSubscriber(),
