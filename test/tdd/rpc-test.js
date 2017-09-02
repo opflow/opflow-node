@@ -22,9 +22,11 @@ describe('opflow-master:', function() {
 
 		beforeEach(function(done) {
 			master = new opflow.RpcMaster(appCfg.extend({
+				routingKey: 'tdd-opflow-rpc',
 				responseName: 'tdd-opflow-response'
 			}));
 			worker = new opflow.RpcWorker(appCfg.extend({
+				routingKey: 'tdd-opflow-rpc',
 				responseName: 'tdd-opflow-response',
 				operatorName: 'tdd-opflow-operator'
 			}));
@@ -63,9 +65,12 @@ describe('opflow-master:', function() {
 
 		before(function() {
 			master = new opflow.RpcMaster(appCfg.extend({
-				responseName: 'tdd-opflow-response'
+				routingKey: 'tdd-opflow-rpc',
+				responseName: 'tdd-opflow-response',
+				monitorTimeout: 6000
 			}));
 			var cfg = appCfg.extend({
+				routingKey: 'tdd-opflow-rpc',
 				responseName: 'tdd-opflow-response',
 				operatorName: 'tdd-opflow-operator'
 			});
@@ -79,9 +84,9 @@ describe('opflow-master:', function() {
 
 		afterEach(function(done) {
 			Promise.all([
-				master.destroy(),
 				worker1.destroy(),
-				worker2.destroy()
+				worker2.destroy(),
+				master.destroy()
 			]).then(lodash.ary(done, 0));
 		});
 
