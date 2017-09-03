@@ -18,7 +18,8 @@ describe('opflow-loader:', function() {
 				default: {
 					default1: 'value 1',
 					default2: 'value 2'
-				}
+				},
+				verbose: true
 			});
 			var expected = {
 				"default1": "value 1",
@@ -42,4 +43,14 @@ describe('opflow-loader:', function() {
 			debugx.enabled && debugx('Configuration: %s', JSON.stringify(cfg));
 		})
 	});
+
+	describe('createPubsubHandler() method:', function() {
+		it('should return the PubsubHandler object if provided a correct configuration file', function() {
+			OpflowLoader.instance.createPubsubHandler({
+				basename: path.join(__dirname, '../lab/loader-pubsub-test.conf'),
+				verbose: true
+			});
+		});
+	});
+
 });
