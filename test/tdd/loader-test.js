@@ -14,7 +14,7 @@ describe('opflow-loader:', function() {
 	describe('loadConfig() method:', function() {
 		it('should return the configuration from default config file', function() {
 			var cfg = OpflowLoader.instance.loadConfig({
-				basename: path.join(__dirname, 'opflow.conf'),
+				basename: path.join(__dirname, '../cfg/opflow.conf'),
 				default: {
 					default1: 'value 1',
 					default2: 'value 2'
@@ -45,12 +45,62 @@ describe('opflow-loader:', function() {
 	});
 
 	describe('createPubsubHandler() method:', function() {
+		var pubsubHandler;
+
 		it('should return the PubsubHandler object if provided a correct configuration file', function() {
-			OpflowLoader.instance.createPubsubHandler({
-				basename: path.join(__dirname, '../lab/loader-pubsub-test.conf'),
-				verbose: true
+			pubsubHandler = OpflowLoader.instance.createPubsubHandler({
+				basename: path.join(__dirname, '../cfg/loader-pubsub-test.conf'),
+				verbose: false
 			});
+		});
+
+		afterEach(function(done) {
+			pubsubHandler && pubsubHandler.close().then(lodash.ary(done, 0));
 		});
 	});
 
+	describe('createRpcMaster() method:', function() {
+		var rpcMaster;
+
+		it('should return the RpcMaster object if provided a correct configuration file', function() {
+			rpcMaster = OpflowLoader.instance.createRpcMaster({
+				basename: path.join(__dirname, '../cfg/loader-rpc_master-test.conf'),
+				verbose: false
+			});
+		});
+
+		afterEach(function(done) {
+			rpcMaster && rpcMaster.close().then(lodash.ary(done, 0));
+		});
+	});
+
+	describe('createRpcWorker() method:', function() {
+		var rpcWorker;
+
+		it('should return the RpcWorker object if provided a correct configuration file', function() {
+			rpcWorker = OpflowLoader.instance.createRpcWorker({
+				basename: path.join(__dirname, '../cfg/loader-rpc_worker-test.conf'),
+				verbose: false
+			});
+		});
+
+		afterEach(function(done) {
+			rpcWorker && rpcWorker.close().then(lodash.ary(done, 0));
+		});
+	});
+
+	describe('createRecycler() method:', function() {
+		var recycler;
+
+		it('should return the Recyclere object if provided a correct configuration file', function() {
+			recycler = OpflowLoader.instance.createRecycler({
+				basename: path.join(__dirname, '../cfg/loader-recycler-test.conf'),
+				verbose: false
+			});
+		});
+
+		afterEach(function(done) {
+			recycler && recycler.close().then(lodash.ary(done, 0));
+		});
+	});
 });
