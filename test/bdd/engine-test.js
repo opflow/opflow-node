@@ -25,10 +25,7 @@ describe('opflow-engine:', function() {
 		};
 
 		before(function() {
-			handler = new OpflowEngine(appCfg.extend({
-				exchangeQuota: undefined,
-				consumer: undefined
-			}));
+			handler = new OpflowEngine(appCfg.extend());
 			executor = new OpflowExecutor({
 				engine: handler
 			});
@@ -146,10 +143,7 @@ describe('opflow-engine:', function() {
 		var executor1;
 
 		before(function() {
-			handler0 = new OpflowEngine(appCfg.extend({
-				consumer: undefined,
-				exchangeQuota: undefined
-			}));
+			handler0 = new OpflowEngine(appCfg.extend());
 			handler1 = new OpflowEngine(appCfg.extend({
 				routingKey: 'tdd-opflow-backup',
 				consumer: undefined,

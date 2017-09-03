@@ -21,20 +21,18 @@ describe('opflow:', function() {
 		var loadsync;
 
 		before(function() {
-			publisher = new PubsubHandler({
-				uri: 'amqp://master:zaq123edcx@192.168.56.56?frameMax=0x1000',
+			publisher = new PubsubHandler(appCfg.extend({
 				exchangeName: 'tdd-opflow-publisher',
 				routingKey: 'tdd-opflow-pubsub-public'
-			});
+			}));
 			subscribers = lodash.range(total).map(function(i) {
-				return new PubsubHandler({
-					uri: 'amqp://master:zaq123edcx@192.168.56.56?frameMax=0x1000',
+				return new PubsubHandler(appCfg.extend({
 					exchangeName: 'tdd-opflow-publisher',
 					routingKey: 'tdd-opflow-pubsub-public',
 					otherKeys: ['tdd-opflow-pubsub-group#' + (i - Math.floor(i/2)*2), 'tdd-opflow-pubsub-private#' + i],
 					subscriberName: 'tdd-opflow-subscriber#' + i,
 					recyclebinName: 'tdd-opflow-recyclebin'
-				});
+				}));
 			});
 		});
 
