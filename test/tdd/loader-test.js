@@ -14,7 +14,7 @@ describe('opflow-loader:', function() {
 	describe('loadConfig() method:', function() {
 		it('should return the configuration from default config file', function() {
 			var cfg = OpflowLoader.instance.loadConfig({
-				basename: path.join(__dirname, '../cfg/opflow.conf'),
+				configDir: path.join(__dirname, '../cfg'),
 				default: {
 					default1: 'value 1',
 					default2: 'value 2'
@@ -49,7 +49,8 @@ describe('opflow-loader:', function() {
 
 		it('should return the PubsubHandler object if provided a correct configuration file', function() {
 			pubsubHandler = OpflowLoader.instance.createPubsubHandler({
-				basename: path.join(__dirname, '../cfg/loader-pubsub-test.conf'),
+				configDir: path.join(__dirname, '../cfg'),
+				configName: 'loader-pubsub-test.conf',
 				verbose: false
 			});
 		});
@@ -64,7 +65,8 @@ describe('opflow-loader:', function() {
 
 		it('should return the RpcMaster object if provided a correct configuration file', function() {
 			rpcMaster = OpflowLoader.instance.createRpcMaster({
-				basename: path.join(__dirname, '../cfg/loader-rpc_master-test.conf'),
+				configDir: path.join(__dirname, '../cfg'),
+				configName: 'loader-rpc_master-test.conf',
 				verbose: false
 			});
 		});
@@ -79,7 +81,8 @@ describe('opflow-loader:', function() {
 
 		it('should return the RpcWorker object if provided a correct configuration file', function() {
 			rpcWorker = OpflowLoader.instance.createRpcWorker({
-				basename: path.join(__dirname, '../cfg/loader-rpc_worker-test.conf'),
+				configDir: path.join(__dirname, '../cfg'),
+				configName: 'loader-rpc_worker-test.conf',
 				verbose: false
 			});
 		});
@@ -94,7 +97,8 @@ describe('opflow-loader:', function() {
 
 		it('should return the Recyclere object if provided a correct configuration file', function() {
 			recycler = OpflowLoader.instance.createRecycler({
-				basename: path.join(__dirname, '../cfg/loader-recycler-test.conf'),
+				configDir: path.join(__dirname, '../cfg'),
+				configName: 'loader-recycler-test.conf',
 				verbose: false
 			});
 		});
