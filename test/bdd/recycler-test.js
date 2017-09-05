@@ -22,7 +22,7 @@ describe('opflow-engine:', function() {
 		before(function() {
 			handler = new PubsubHandler(appCfg.extend({
 				exchangeName: 'tdd-opflow-publisher',
-				routingKey: 'tdd-opflow-pubsub-public',
+				routingKey: 'tdd-opflow-recycle',
 				subscriberName: 'tdd-opflow-subscriber',
 				recyclebinName: 'tdd-opflow-recyclebin',
 				redeliveredLimit: 3
@@ -125,7 +125,7 @@ describe('opflow-engine:', function() {
 		before(function() {
 			handler = new PubsubHandler(appCfg.extend({
 				exchangeName: 'tdd-opflow-publisher',
-				routingKey: 'tdd-opflow-pubsub-public',
+				routingKey: 'tdd-opflow-recycle',
 				subscriberName: 'tdd-opflow-subscriber',
 				recyclebinName: 'tdd-opflow-recyclebin',
 				redeliveredLimit: 3

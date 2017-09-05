@@ -20,7 +20,20 @@ describe('opflow:', function() {
 		var subscribers;
 		var loadsync;
 
-		before(function() {
+		var cleanSubscribers = function() {
+			return Promise.all(lodash.flatten(lodash.map(subscribers, function(subscriber) {
+				return [ 
+					subscriber.executor.purgeQueue({
+						queueName: subscriber.subscriberName
+					}),
+					subscriber.executor.purgeQueue({
+						queueName: subscriber.recyclebinName
+					})
+				];
+			})));
+		}
+
+		before(function(done) {
 			publisher = new PubsubHandler(appCfg.extend({
 				exchangeName: 'tdd-opflow-publisher',
 				routingKey: 'tdd-opflow-pubsub-public'
@@ -34,29 +47,19 @@ describe('opflow:', function() {
 					recyclebinName: 'tdd-opflow-recyclebin'
 				}));
 			});
+			cleanSubscribers().then(lodash.ary(done, 0));
 		});
 
 		beforeEach(function(done) {
-			Promise.all(lodash.flatten(lodash.map(subscribers, function(subscriber) {
-				return [ 
-					subscriber.executor.purgeQueue({
-						queueName: subscriber.subscriberName
-					}),
-					subscriber.executor.purgeQueue({
-						queueName: subscriber.recyclebinName
-					})
-				];
-			}))).then(function() {
-				return publisher.ready();
-			}).then(lodash.ary(done, 0));
+			publisher.ready().then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {
-			Promise.all(lodash.map(subscribers, function(subscriber) {
-				return subscriber.close();
-			})).then(function() {
-				return publisher.close();
-			}).then(lodash.ary(done, 0));
+			cleanSubscribers().then(function() {
+				return Promise.all(lodash.map(subscribers, function(subscriber) {
+					return subscriber.close();
+				}));
+			}).then(publisher.close).then(lodash.ary(done, 0));
 		});
 
 		it('Publish to public channel, all of subscribers should receive message', function(done) {

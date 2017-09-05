@@ -24,11 +24,12 @@ describe('opflow-engine:', function() {
 			binding: true
 		};
 
-		before(function() {
+		before(function(done) {
 			handler = new OpflowEngine(appCfg.extend());
 			executor = new OpflowExecutor({
 				engine: handler
 			});
+			executor.purgeQueue(queue).then(lodash.ary(done, 0));
 		});
 
 		beforeEach(function(done) {
