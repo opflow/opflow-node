@@ -47,11 +47,16 @@ describe('opflow-loader:', function() {
 	describe('createPubsubHandler() method:', function() {
 		var pubsubHandler;
 
-		it('should return the PubsubHandler object if provided a correct configuration file', function() {
-			pubsubHandler = OpflowLoader.instance.createPubsubHandler({
+		it('should return the PubsubHandler object if provided a correct configuration file', function(done) {
+			OpflowLoader.instance.createPubsubHandler({
 				configDir: path.join(__dirname, '../cfg'),
 				configName: 'loader-pubsub-test.conf',
 				verbose: false
+			}).then(function(handler) {
+				pubsubHandler = handler;
+				done();
+			}).catch(function(error) {
+				done(error);
 			});
 		});
 
@@ -63,11 +68,16 @@ describe('opflow-loader:', function() {
 	describe('createRpcMaster() method:', function() {
 		var rpcMaster;
 
-		it('should return the RpcMaster object if provided a correct configuration file', function() {
-			rpcMaster = OpflowLoader.instance.createRpcMaster({
+		it('should return the RpcMaster object if provided a correct configuration file', function(done) {
+			OpflowLoader.instance.createRpcMaster({
 				configDir: path.join(__dirname, '../cfg'),
 				configName: 'loader-rpc_master-test.conf',
 				verbose: false
+			}).then(function(handler) {
+				rpcMaster = handler;
+				done();
+			}).catch(function(error) {
+				done(error);
 			});
 		});
 
@@ -79,11 +89,16 @@ describe('opflow-loader:', function() {
 	describe('createRpcWorker() method:', function() {
 		var rpcWorker;
 
-		it('should return the RpcWorker object if provided a correct configuration file', function() {
-			rpcWorker = OpflowLoader.instance.createRpcWorker({
+		it('should return the RpcWorker object if provided a correct configuration file', function(done) {
+			OpflowLoader.instance.createRpcWorker({
 				configDir: path.join(__dirname, '../cfg'),
 				configName: 'loader-rpc_worker-test.conf',
 				verbose: false
+			}).then(function(handler) {
+				rpcWorker = handler;
+				done();
+			}).catch(function(error) {
+				done(error);
 			});
 		});
 
@@ -95,11 +110,16 @@ describe('opflow-loader:', function() {
 	describe('createRecycler() method:', function() {
 		var recycler;
 
-		it('should return the Recyclere object if provided a correct configuration file', function() {
-			recycler = OpflowLoader.instance.createRecycler({
+		it('should return the Recyclere object if provided a correct configuration file', function(done) {
+			OpflowLoader.instance.createRecycler({
 				configDir: path.join(__dirname, '../cfg'),
 				configName: 'loader-recycler-test.conf',
 				verbose: false
+			}).then(function(handler) {
+				recycler = handler;
+				done();
+			}).catch(function(error) {
+				done(error);
 			});
 		});
 
