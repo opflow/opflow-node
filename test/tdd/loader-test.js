@@ -49,6 +49,7 @@ describe('opflow-loader:', function() {
 					default1: 'value 1',
 					default2: 'value 2'
 				},
+				skipConfigFile: true,
 				verbose: true
 			});
 			var expected = {
@@ -66,12 +67,75 @@ describe('opflow-loader:', function() {
 					default2: 'value 2'
 				},
 				configDir: path.join(__dirname, '../cfg'),
-				useDefaultConfigName: false,
+				skipConfigFile: true,
 				verbose: true
 			});
 			var expected = {
 				"default1": "value 1",
 				"default2": "value 2"
+			};
+			assert.deepEqual(cfg, expected);
+			debugx.enabled && debugx('Configuration: %s', JSON.stringify(cfg));
+		});
+
+		it('should return the configuration from config files in OPFLOW_CONFIG_DIR', function() {
+			process.env['OPFLOW_CONFIG_DIR'] = path.join(__dirname, '../cfg');
+			var cfg = OpflowLoader.instance.loadConfig({
+				default: {
+					default1: 'value 1',
+					default2: 'value 2'
+				},
+				verbose: true
+			});
+			var expected = {
+				"default1": "value 1",
+				"default2": "value 2",
+				"json1": "String",
+				"json2": 17779,
+				"json3": true,
+				"json4": {
+					"msg": "This is an object"
+				},
+				"js1": 100,
+				"js2": 101,
+				"jsx": {
+					"key": "hello",
+					"value": [
+						"world"
+					]
+				}
+			};
+			assert.deepEqual(cfg, expected);
+			debugx.enabled && debugx('Configuration: %s', JSON.stringify(cfg));
+		});
+
+		it('should return the configuration from OPFLOW_CONFIG_NAME files in OPFLOW_CONFIG_DIR', function() {
+			process.env['OPFLOW_CONFIG_DIR'] = path.join(__dirname, '../cfg');
+			process.env['OPFLOW_CONFIG_NAME'] = 'opflow.copy';
+			var cfg = OpflowLoader.instance.loadConfig({
+				default: {
+					default1: 'value 1',
+					default2: 'value 2'
+				},
+				verbose: true
+			});
+			var expected = {
+				"default1": "value 1",
+				"default2": "value 2",
+				"json1": "String",
+				"json2": 17779,
+				"json3": true,
+				"json4": {
+					"msg": "This is an opflow"
+				},
+				"js1": 200,
+				"js2": 201,
+				"jsx": {
+					"key": "hello",
+					"value": [
+						"opflow"
+					]
+				}
 			};
 			assert.deepEqual(cfg, expected);
 			debugx.enabled && debugx('Configuration: %s', JSON.stringify(cfg));

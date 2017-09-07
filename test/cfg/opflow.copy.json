@@ -1,0 +1,8 @@
+{
+	"json1": "String",
+	"json2": 17779,
+	"json3": true,
+	"json4": {
+		"msg": "This is an opflow"
+	}
+}
