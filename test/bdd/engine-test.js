@@ -4,7 +4,6 @@ var Promise = require('bluebird');
 var lodash = require('lodash');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
-var util = require('util');
 var debugx = require('debug')('opflow:engine:test');
 var OpflowEngine = require('../../lib/engine');
 var OpflowExecutor = require('../../lib/executor');
