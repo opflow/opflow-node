@@ -41,7 +41,41 @@ describe('opflow-loader:', function() {
 			};
 			assert.deepEqual(cfg, expected);
 			debugx.enabled && debugx('Configuration: %s', JSON.stringify(cfg));
-		})
+		});
+
+		it('should return the configuration object only by default', function() {
+			var cfg = OpflowLoader.instance.loadConfig({
+				default: {
+					default1: 'value 1',
+					default2: 'value 2'
+				},
+				verbose: true
+			});
+			var expected = {
+				"default1": "value 1",
+				"default2": "value 2"
+			};
+			assert.deepEqual(cfg, expected);
+			debugx.enabled && debugx('Configuration: %s', JSON.stringify(cfg));
+		});
+
+		it('should return the configuration object only if useDefaultConfigName is false', function() {
+			var cfg = OpflowLoader.instance.loadConfig({
+				default: {
+					default1: 'value 1',
+					default2: 'value 2'
+				},
+				configDir: path.join(__dirname, '../cfg'),
+				useDefaultConfigName: false,
+				verbose: true
+			});
+			var expected = {
+				"default1": "value 1",
+				"default2": "value 2"
+			};
+			assert.deepEqual(cfg, expected);
+			debugx.enabled && debugx('Configuration: %s', JSON.stringify(cfg));
+		});
 	});
 
 	describe('createPubsubHandler() method:', function() {
