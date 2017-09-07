@@ -24,17 +24,20 @@ describe('opflow-engine:', function() {
 				routingKey: 'tdd-opflow-recycle',
 				subscriberName: 'tdd-opflow-subscriber',
 				recyclebinName: 'tdd-opflow-recyclebin',
-				redeliveredLimit: 3
+				redeliveredLimit: 3,
+				autoinit: false
 			}));
 			recycler = new Recycler(appCfg.extend({
 				subscriberName: 'tdd-opflow-subscriber',
-				recyclebinName: 'tdd-opflow-recyclebin'
+				recyclebinName: 'tdd-opflow-recyclebin',
+				autoinit: false
 			}));
 		});
 
 		beforeEach(function(done) {
 			Promise.all([
 				handler.ready(),
+				recycler.ready(),
 				recycler.purgeSubscriber(),
 				recycler.purgeRecyclebin()
 			]).then(lodash.ary(done, 0));
@@ -127,17 +130,20 @@ describe('opflow-engine:', function() {
 				routingKey: 'tdd-opflow-recycle',
 				subscriberName: 'tdd-opflow-subscriber',
 				recyclebinName: 'tdd-opflow-recyclebin',
-				redeliveredLimit: 3
+				redeliveredLimit: 3,
+				autoinit: false
 			}));
 			recycler = new Recycler(appCfg.extend({
 				subscriberName: 'tdd-opflow-subscriber',
-				recyclebinName: 'tdd-opflow-recyclebin'
+				recyclebinName: 'tdd-opflow-recyclebin',
+				autoinit: false
 			}));
 		});
 
 		beforeEach(function(done) {
 			Promise.all([
 				handler.ready(),
+				recycler.ready(),
 				recycler.purgeSubscriber(),
 				recycler.purgeRecyclebin()
 			]).then(lodash.ary(done, 0));

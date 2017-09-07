@@ -36,7 +36,8 @@ describe('opflow:', function() {
 		before(function(done) {
 			publisher = new PubsubHandler(appCfg.extend({
 				exchangeName: 'tdd-opflow-publisher',
-				routingKey: 'tdd-opflow-pubsub-public'
+				routingKey: 'tdd-opflow-pubsub-public',
+				autoinit: false
 			}));
 			subscribers = lodash.range(total).map(function(i) {
 				return new PubsubHandler(appCfg.extend({
@@ -44,14 +45,19 @@ describe('opflow:', function() {
 					routingKey: 'tdd-opflow-pubsub-public',
 					otherKeys: ['tdd-opflow-pubsub-group#' + (i - Math.floor(i/2)*2), 'tdd-opflow-pubsub-private#' + i],
 					subscriberName: 'tdd-opflow-subscriber#' + i,
-					recyclebinName: 'tdd-opflow-recyclebin'
+					recyclebinName: 'tdd-opflow-recyclebin',
+					autoinit: false
 				}));
 			});
 			cleanSubscribers().then(lodash.ary(done, 0));
 		});
 
 		beforeEach(function(done) {
-			publisher.ready().then(lodash.ary(done, 0));
+			publisher.ready().then(function() {
+				return Promise.all(lodash.map(subscribers, function(subscriber) {
+					return subscriber.ready();
+				}));
+			}).then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {
