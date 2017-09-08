@@ -54,7 +54,7 @@ describe('opflow-engine:', function() {
 					key1: 'test ' + message_code,
 					key2: 'test ' + (message_code + 1)
 				});
-				assert.isTrue(Object.keys(msg.properties.headers).length === 2);
+				assert.isTrue(Object.keys(msg.properties.headers).length >= 2);
 				finish();
 				if (index >= total) {
 					handler.cancelConsumer(info).then(lodash.ary(done, 0));
