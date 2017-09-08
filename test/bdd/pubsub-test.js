@@ -10,9 +10,9 @@ var appCfg = require('../lab/app-configuration');
 var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
 
-describe('opflow:', function() {
+describe('opflow-pubsub:', function() {
 
-	describe('pubsub:', function() {
+	describe('multiple subscribers:', function() {
 		var total = 4;
 		var publisher;
 		var subscribers;
@@ -167,6 +167,50 @@ describe('opflow:', function() {
 				return publisher.publish({ type: 'end2' });
 			});
 			this.timeout(600000);
+		});
+	});
+
+	describe('unmanaged exception:', function() {
+		var handler;
+
+		before(function() {
+			handler = new PubsubHandler(appCfg.extend({
+				exchangeName: 'tdd-opflow-publisher',
+				routingKey: 'tdd-opflow-recycle',
+				subscriberName: 'tdd-opflow-subscriber',
+				autoinit: false
+			}));
+		});
+
+		beforeEach(function(done) {
+			handler.ready().then(lodash.ary(done, 0));
+		})
+
+		afterEach(function(done) {
+			handler.close().then(lodash.ary(done, 0));
+		})
+
+		it('bypass all of unmanaged exceptions', function(done) {
+			var total = 100;
+			var count = 0;
+			var index = 0;
+			var codes = [11, 21, 31, 41, 51, 61, 71, 81, 91, 99];
+			var hasDone = 0;
+			var ok = handler.subscribe(function(body, headers, finish) {
+				body = JSON.parse(body);
+				if (++index >= total) {
+					assert.equal(count, total - codes.length);
+					(hasDone++ === 0) && done();
+				}
+				if (codes.indexOf(body.code) >= 0) throw new Error('failed: ' + body.code);
+				count++;
+			});
+			ok.then(function() {
+				Promise.mapSeries(lodash.range(total), function(count) {
+					return handler.publish({ code: count, msg: 'Hello world' });
+				});
+			})
+			this.timeout(50*total);
 		});
 	});
 });
