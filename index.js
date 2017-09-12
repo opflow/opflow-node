@@ -5,5 +5,6 @@ module.exports = {
 	PubsubHandler: require('./lib/pubsub'),
 	Recycler: require('./lib/recycler'),
 	RpcMaster: require('./lib/rpc_master'),
-	RpcWorker: require('./lib/rpc_worker')
+	RpcWorker: require('./lib/rpc_worker'),
+	Serverlet: require('./lib/serverlet')
 }
