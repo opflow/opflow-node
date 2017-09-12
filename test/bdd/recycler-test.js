@@ -115,7 +115,7 @@ describe('opflow-engine:', function() {
 					return handler.publish({ code: count, msg: 'Hello world' });
 				});
 			});
-			this.timeout(5*total);
+			this.timeout(50*total);
 		});
 	});
 
