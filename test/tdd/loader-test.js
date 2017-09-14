@@ -208,7 +208,7 @@ describe('opflow-loader:', function() {
 	describe('createRecycler() method:', function() {
 		var recycler;
 
-		it('should return the Recyclere object if provided a correct configuration file', function(done) {
+		it('should return the Recycler object if provided a correct configuration file', function(done) {
 			OpflowLoader.instance.createRecycler({
 				configDir: path.join(__dirname, '../cfg'),
 				configName: 'loader-recycler-test.conf',
@@ -223,6 +223,35 @@ describe('opflow-loader:', function() {
 
 		afterEach(function(done) {
 			recycler && recycler.close().then(lodash.ary(done, 0));
+		});
+	});
+
+	describe('createServerlet() method:', function() {
+		var serverlet;
+
+		it('should return the Serverlet object if provided a correct configuration file', function(done) {
+			serverlet = OpflowLoader.instance.createServerlet({
+				configurer: function(body, headers, finish) {},
+				rpcWorker: [{
+					routineId: 'fibonacci',
+					handler: function(body, headers, response) {}
+				}],
+				subscriber: function(body, headers, finish) {}
+			}, {
+				autoinit: false,
+				configDir: path.join(__dirname, '../cfg'),
+				configName: 'loader-serverlet-test.conf',
+				verbose: false
+			}).then(function(handler) {
+				serverlet = handler;
+				done();
+			}).catch(function(error) {
+				done(error);
+			});
+		});
+
+		afterEach(function(done) {
+			serverlet && serverlet.close().then(lodash.ary(done, 0));
 		});
 	});
 });
