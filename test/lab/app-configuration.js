@@ -11,5 +11,8 @@ module.exports = {
 	extend: function(ext) {
 		ext = ext || {};
 		return lodash.merge({}, baseCfg, ext);
+	},
+	timeout: function(ms) {
+		return ms ? lodash.max([ms, 600000]) : 600000;
 	}
 };

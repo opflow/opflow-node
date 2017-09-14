@@ -199,15 +199,19 @@ describe('opflow-pubsub:', function() {
 			var ok = handler.subscribe(function(body, headers, finish) {
 				body = JSON.parse(body);
 				if (++index >= total) {
-					assert.equal(count, total - codes.length);
-					(hasDone++ === 0) && done();
+					(hasDone++ === 0) && done((count != (total - codes.length)) ? {
+						error: true,
+						index: index,
+						total: total,
+						count: count
+					} : undefined);
 				}
 				if (codes.indexOf(body.code) >= 0) throw new Error('failed: ' + body.code);
 				count++;
 			});
 			ok.then(function() {
-				Promise.mapSeries(lodash.range(total), function(count) {
-					return handler.publish({ code: count, msg: 'Hello world' });
+				Promise.mapSeries(lodash.range(total), function(item) {
+					return handler.publish({ code: item, msg: 'Hello world' });
 				});
 			})
 			this.timeout(50*total);
