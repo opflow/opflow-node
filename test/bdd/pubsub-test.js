@@ -191,14 +191,17 @@ describe('opflow-pubsub:', function() {
 		})
 
 		it('bypass all of unmanaged exceptions', function(done) {
-			var total = 100;
+			var total = 1000;
 			var count = 0;
 			var index = 0;
 			var codes = [11, 21, 31, 41, 51, 61, 71, 81, 91, 99];
 			var hasDone = 0;
 			var ok = handler.subscribe(function(body, headers, finish) {
 				body = JSON.parse(body);
-				if (++index >= total) {
+				index += 1;
+				if (codes.indexOf(body.code) >= 0) throw new Error('failed: ' + body.code);
+				count += 1;
+				if (index >= total) {
 					(hasDone++ === 0) && done((count != (total - codes.length)) ? {
 						error: true,
 						index: index,
@@ -206,8 +209,6 @@ describe('opflow-pubsub:', function() {
 						count: count
 					} : undefined);
 				}
-				if (codes.indexOf(body.code) >= 0) throw new Error('failed: ' + body.code);
-				count++;
 			});
 			ok.then(function() {
 				Promise.mapSeries(lodash.range(total), function(item) {
