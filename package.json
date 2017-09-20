@@ -1,6 +1,6 @@
 {
   "name": "opflow",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Devebot Opflow for Node.js",
   "main": "index.js",
   "scripts": {
