@@ -4,15 +4,28 @@ var lodash = require('lodash');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
 var debugx = require('debug')('tdd:opflow:LogTracer');
-var OpflowLogTracer = require('../../lib/log_tracer');
+var freshy = require('freshy');
+
+var OpflowLogTracer = freshy.reload('../../lib/log_tracer');
 
 describe('opflow.LogTracer:', function() {
+	describe('libraryInfo:', function() {
+		it('should return library information when get libraryInfo', function() {
+			var libinfo = OpflowLogTracer.libraryInfo;
+			assert.equal(libinfo.lib_name, 'opflow-nodejs');
+			assert.property(libinfo, 'lib_version');
+			assert.property(libinfo, 'os_name');
+			assert.property(libinfo, 'os_version');
+			assert.property(libinfo, 'os_arch');
+		})
+	});
 	describe('branch() method:', function() {
 		it('should create new child logTracer object', function() {
 			process.env.OPFLOW_INSTANCE_ID = 'node1';
 
 			var LT1 = OpflowLogTracer.ROOT;
 			assert.deepEqual(JSON.parse(LT1.toString()), {
+				"message": null,
 				"instanceId": "node1"
 			});
 
@@ -20,15 +33,18 @@ describe('opflow.LogTracer:', function() {
 			var msg1 = '' + LT2;
 			debugx.enabled && debugx('LT2-1: %s', msg1);
 			assert.deepEqual(JSON.parse(msg1), {
+				"message": null,
 				"instanceId": "node1",
 				"engineId": "engine_123456"
 			});
 
 			LT1.put("instanceId", "node2");
 			assert.deepEqual(JSON.parse(LT1.toString()), {
+				"message": null,
 				"instanceId": "node2"
 			});
 			assert.deepEqual(JSON.parse(LT1.reset().toString()), {
+				"message": null,
 				"instanceId": "node1"
 			});
 
@@ -65,6 +81,7 @@ describe('opflow.LogTracer:', function() {
 
 			var LT1 = OpflowLogTracer.ROOT;
 			assert.deepEqual(JSON.parse(LT1.toString()), {
+				"message": null,
 				"instanceId": "node1"
 			});
 
@@ -72,11 +89,13 @@ describe('opflow.LogTracer:', function() {
 			var msg1 = '' + LT2;
 			debugx.enabled && debugx('LT2-1: %s', msg1);
 			assert.deepEqual(JSON.parse(msg1), {
+				"message": null,
 				"instanceId": "node1"
 			});
 
 			LT1.put("instanceId", "node2");
 			assert.deepEqual(JSON.parse(LT1.toString()), {
+				"message": null,
 				"instanceId": "node2"
 			});
 
