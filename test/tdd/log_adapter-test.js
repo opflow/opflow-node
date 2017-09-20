@@ -8,10 +8,10 @@ var path = require('path');
 var util = require('util');
 var debugx = require('debug')('opflow:test:LogAdapter');
 var misc = require('../../lib/util');
-var LogAdapter = require('../../lib/logadapter');
+var LogAdapter = require('../../lib/log_adapter');
 var MockLogger = require('../lab/mock-logger');
 
-describe('opflow-logadapter:', function() {
+describe('opflow.LogAdapter:', function() {
 	var consoleLog = process.env.OPFLOW_CONLOG;
 	var logIdTreeEnabled = process.env.OPFLOW_LOGIDTREE;
 
