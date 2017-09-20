@@ -48,8 +48,8 @@ describe('opflow-logadapter:', function() {
 			'consumerId': 'consumer#2'
 		});
 
-		assert.equal(mock.messages.length, 3);
-		assert.include(mock.messages[0][1], {
+		assert.equal(mock.messages.length, 4);
+		assert.include(mock.messages[1][1], {
 			'instanceId': misc.instanceId,
 			'engineId': 'eef420ff-9eb7-474a-996a-f63b121100a8',
 			'field1': 'Value 1',
