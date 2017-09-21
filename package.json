@@ -1,6 +1,6 @@
 {
   "name": "opflow",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Devebot Opflow for Node.js",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,7 @@
   "devDependencies": {
     "chai": "^4.1.0",
     "faker": "^4.1.0",
+    "freshy": "^1.0.3",
     "loadsync": "^0.1.8",
     "mocha": "^3.4.2"
   }
