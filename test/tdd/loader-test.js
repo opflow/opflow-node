@@ -6,7 +6,7 @@ var assert = require('chai').assert;
 var expect = require('chai').expect;
 var path = require('path');
 var util = require('util');
-var debugx = require('debug')('opflow:loader:test');
+var debugx = require('debug')('tdd:opflow:Loader');
 var OpflowLoader = require('../../lib/loader');
 var Loadsync = require('loadsync');
 
