@@ -4,7 +4,7 @@ var Promise = require('bluebird');
 var lodash = require('lodash');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
-var debugx = require('debug')('opflow:master:test');
+var debugx = require('debug')('test:opflow:rpc');
 var opflow = require('../../index');
 var appCfg = require('../lab/app-configuration');
 var bogen = require('../lab/big-object-generator');
@@ -196,6 +196,97 @@ describe('opflow-master:', function() {
 					debugx.enabled && debugx('Success total: %s', stats.success);
 					done(null);
 				});
+			}).catch(function(error) {
+				done(error);
+			});
+		});
+	});
+
+	describe('mass RPC requests sending and receiving:', function() {
+		var master, worker1, worker2;
+
+		before(function() {
+			master = new opflow.RpcMaster(appCfg.extend({
+				routingKey: 'tdd-opflow-rpc',
+				responseName: 'tdd-opflow-response',
+				monitorTimeout: 2000,
+				progressEnabled: false,
+				autoinit: false
+			}));
+			var cfg = appCfg.extend({
+				routingKey: 'tdd-opflow-rpc',
+				responseName: 'tdd-opflow-response',
+				operatorName: 'tdd-opflow-operator',
+				autoinit: false
+			});
+			worker1 = new opflow.RpcWorker(cfg);
+			worker2 = new opflow.RpcWorker(cfg);
+		});
+
+		beforeEach(function(done) {
+			Promise.all([
+				master.ready(),
+				worker1.ready(),
+				worker2.ready()
+			]).then(lodash.ary(done, 0));
+		});
+
+		afterEach(function(done) {
+			Promise.all([
+				master.close(),
+				worker1.close(),
+				worker2.close()
+			]).then(lodash.ary(done, 0));
+		});
+
+		it('should bypass unmanged exception, workers are still alive', function(done) {
+			this.timeout(120000);
+			var bypass = [11, 14, 15, 18, 20, 24, 25, 26, 47];
+			var total = 1000;
+			var right = 0;
+			var taskRejectValues = function(body, headers, response) {
+				debugx.enabled && debugx('Request[%s] receives: %s', headers.requestId, body);
+				body = JSON.parse(body);
+				var pos = bypass.indexOf(body.number);
+				response.emitStarted();
+				if (0 <= pos && pos < 3) throw new Error('failed with: ' + body.number);
+				var fibonacci = new Fibonacci(body);
+				while(fibonacci.next()) {
+					var r = fibonacci.result();
+					response.emitProgress(r.step, r.number);
+					if (3 <= pos && pos < 6 && r.step > 5) {
+						throw new Error('failed with: ' + body.number);
+					}
+				};
+				if (6 <= pos) throw new Error('failed with: ' + body.number);
+				right += 1;
+				response.emitCompleted(fibonacci.result());
+			}
+			var acc = {total: 0, success: 0, failure: 0};
+			Promise.all([
+				worker1.process('fibonacci', taskRejectValues),
+				worker2.process('fibonacci', taskRejectValues)
+			]).then(function() {
+				return Promise.map(lodash.range(total), function(count) {
+					acc.total += 1;
+					return master.request('fibonacci', {
+						number: lodash.random(10, 50)
+					}).then(function(job) {
+						return job.extractResult();
+					}).then(function(result) {
+						debugx.enabled && debugx('#%s: %s', count,
+							result.completed && 'completed' ||
+							result.failed && 'failed' ||
+							result.timeout && 'timeout');
+						if (result.completed) acc.success += 1;
+						if (result.failed || result.timeout) acc.failure += 1;
+						return 1;
+					});
+				}, {concurrency: 10});
+			}).then(function(results) {
+				assert.equal(acc.total, total);
+				debugx.enabled && debugx('Result: %s', JSON.stringify(acc));
+				done();
 			}).catch(function(error) {
 				done(error);
 			});
