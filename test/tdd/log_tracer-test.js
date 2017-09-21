@@ -19,6 +19,7 @@ describe('opflow.LogTracer:', function() {
 			assert.property(libinfo, 'os_arch');
 		})
 	});
+
 	describe('branch() method:', function() {
 		it('should create new child logTracer object', function() {
 			process.env.OPFLOW_INSTANCE_ID = 'node1';
@@ -122,5 +123,43 @@ describe('opflow.LogTracer:', function() {
 				"message": "Message renew #2"
 			});
 		});
+	});
+
+	describe('interceptors:', function() {
+		it('should pass log object to interceptors', function() {
+			process.env.OPFLOW_INSTANCE_ID = 'node1';
+
+			var logdata1, logdata2, logdata3;
+			var LT1 = OpflowLogTracer.ROOT.reset();
+
+			var I1 = function(logdata) {
+				LT1.reset();
+				assert.deepEqual(logdata, {
+					"message": null,
+					"instanceId": "node1"
+				});
+				logdata1 = logdata;
+			};
+			var I2 = {};
+			var I3 = function(logdata) {
+				LT1.reset();
+				logdata3 = logdata;
+			};
+
+			OpflowLogTracer.addStringifyInterceptor(I1);
+			OpflowLogTracer.addStringifyInterceptor(I2);
+			OpflowLogTracer.addStringifyInterceptor(I3);
+			assert.equal(OpflowLogTracer.stringifyInterceptorCount(), 2);
+
+			var LT1 = OpflowLogTracer.ROOT.reset();
+			assert.deepEqual(logdata2 = JSON.parse(LT1.toString()), {
+				"message": null,
+				"instanceId": "node1"
+			});
+
+			assert.isTrue(logdata1 === logdata3);
+			assert.isTrue(logdata1 !== logdata2);
+			assert.deepEqual(logdata1, logdata2);
+		})
 	});
 });
