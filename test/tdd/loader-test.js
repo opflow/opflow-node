@@ -140,6 +140,72 @@ describe('opflow-loader:', function() {
 			assert.deepEqual(cfg, expected);
 			debugx.enabled && debugx('Configuration: %s', JSON.stringify(cfg));
 		});
+
+		it('should return the configuration object from YAML file', function() {
+			var cfg = OpflowLoader.instance.loadConfig({
+				default: {
+					default1: 'value 1',
+					default2: 'value 2'
+				},
+				configDir: path.join(__dirname, '../cfg'),
+				configName: 'opflow.test.yml',
+				verbose: true
+			});
+			var expected = {
+				"default1": "value 1",
+				"default2": "value 2",
+				"opflow": {
+					"yaml1": {
+						"field1": "Hello world",
+						"field2": 1024,
+						"field3": 17.7
+					},
+					"yaml2": {
+						"data1": {
+							"field1": "salary",
+							"field2": 100
+						}
+					}
+				}
+			};
+			assert.deepEqual(cfg, expected);
+			debugx.enabled && debugx('Configuration: %s', JSON.stringify(cfg));
+		});
+
+		it('should return the configuration object from both JSON and YAML files', function() {
+			var cfg = OpflowLoader.instance.loadConfig({
+				default: {
+					default1: 'value 1',
+					default2: 'value 2'
+				},
+				configDir: path.join(__dirname, '../cfg'),
+				configName: 'opflow.test',
+				verbose: true
+			});
+			var expected = {
+				"default1": "value 1",
+				"default2": "value 2",
+				"opflow": {
+					"yaml1": {
+						"field1": "Hello world",
+						"field2": 1024,
+						"field3": 17.7
+					},
+					"yaml2": {
+						"data1": {
+							"field1": "salary",
+							"field2": 100
+						},
+						"data2": {
+							"field1": "tax",
+							"field2": 7
+						}
+					}
+				}
+			};
+			assert.deepEqual(cfg, expected);
+			debugx.enabled && debugx('Configuration: %s', JSON.stringify(cfg));
+		});
 	});
 
 	describe('createPubsubHandler() method:', function() {

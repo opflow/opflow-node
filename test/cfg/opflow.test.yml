@@ -1,0 +1,9 @@
+opflow:
+  yaml1:
+    field1: "Hello world"
+    field2: 1024
+    field3: 17.7
+  yaml2:
+    data1:
+      field1: "salary"
+      field2: 100
