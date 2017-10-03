@@ -6,14 +6,14 @@ var assert = require('chai').assert;
 var expect = require('chai').expect;
 var path = require('path');
 var util = require('util');
-var debugx = require('debug')('tdd:opflow:Loader');
-var OpflowLoader = require('../../lib/loader');
+var debugx = require('debug')('tdd:opflow:Builder');
+var OpflowBuilder = require('../../lib/builder');
 var Loadsync = require('loadsync');
 
-describe('opflow-loader:', function() {
+describe('opflow-builder:', function() {
 	describe('loadConfig() method:', function() {
 		it('should return the configuration from default config file', function() {
-			var cfg = OpflowLoader.instance.loadConfig({
+			var cfg = OpflowBuilder.instance.loadConfig({
 				configDir: path.join(__dirname, '../cfg'),
 				default: {
 					default1: 'value 1',
@@ -44,7 +44,7 @@ describe('opflow-loader:', function() {
 		});
 
 		it('should return the configuration object only by default', function() {
-			var cfg = OpflowLoader.instance.loadConfig({
+			var cfg = OpflowBuilder.instance.loadConfig({
 				default: {
 					default1: 'value 1',
 					default2: 'value 2'
@@ -61,7 +61,7 @@ describe('opflow-loader:', function() {
 		});
 
 		it('should return the configuration object only if useDefaultConfigName is false', function() {
-			var cfg = OpflowLoader.instance.loadConfig({
+			var cfg = OpflowBuilder.instance.loadConfig({
 				default: {
 					default1: 'value 1',
 					default2: 'value 2'
@@ -80,7 +80,7 @@ describe('opflow-loader:', function() {
 
 		it('should return the configuration from config files in OPFLOW_CONFIG_DIR', function() {
 			process.env['OPFLOW_CONFIG_DIR'] = path.join(__dirname, '../cfg');
-			var cfg = OpflowLoader.instance.loadConfig({
+			var cfg = OpflowBuilder.instance.loadConfig({
 				default: {
 					default1: 'value 1',
 					default2: 'value 2'
@@ -112,7 +112,7 @@ describe('opflow-loader:', function() {
 		it('should return the configuration from OPFLOW_CONFIG_NAME files in OPFLOW_CONFIG_DIR', function() {
 			process.env['OPFLOW_CONFIG_DIR'] = path.join(__dirname, '../cfg');
 			process.env['OPFLOW_CONFIG_NAME'] = 'opflow.copy';
-			var cfg = OpflowLoader.instance.loadConfig({
+			var cfg = OpflowBuilder.instance.loadConfig({
 				default: {
 					default1: 'value 1',
 					default2: 'value 2'
@@ -142,7 +142,7 @@ describe('opflow-loader:', function() {
 		});
 
 		it('should return the configuration object from YAML file', function() {
-			var cfg = OpflowLoader.instance.loadConfig({
+			var cfg = OpflowBuilder.instance.loadConfig({
 				default: {
 					default1: 'value 1',
 					default2: 'value 2'
@@ -173,7 +173,7 @@ describe('opflow-loader:', function() {
 		});
 
 		it('should return the configuration object from both JSON and YAML files', function() {
-			var cfg = OpflowLoader.instance.loadConfig({
+			var cfg = OpflowBuilder.instance.loadConfig({
 				default: {
 					default1: 'value 1',
 					default2: 'value 2'
@@ -212,9 +212,9 @@ describe('opflow-loader:', function() {
 		var pubsubHandler;
 
 		it('should return the PubsubHandler object if provided a correct configuration file', function(done) {
-			OpflowLoader.instance.createPubsubHandler({
+			OpflowBuilder.instance.createPubsubHandler({
 				configDir: path.join(__dirname, '../cfg'),
-				configName: 'loader-pubsub-test.conf',
+				configName: 'builder-pubsub-test.conf',
 				verbose: false
 			}).then(function(handler) {
 				pubsubHandler = handler;
@@ -233,9 +233,9 @@ describe('opflow-loader:', function() {
 		var rpcMaster;
 
 		it('should return the RpcMaster object if provided a correct configuration file', function(done) {
-			OpflowLoader.instance.createRpcMaster({
+			OpflowBuilder.instance.createRpcMaster({
 				configDir: path.join(__dirname, '../cfg'),
-				configName: 'loader-rpc_master-test.conf',
+				configName: 'builder-rpc_master-test.conf',
 				verbose: false
 			}).then(function(handler) {
 				rpcMaster = handler;
@@ -254,9 +254,9 @@ describe('opflow-loader:', function() {
 		var rpcWorker;
 
 		it('should return the RpcWorker object if provided a correct configuration file', function(done) {
-			OpflowLoader.instance.createRpcWorker({
+			OpflowBuilder.instance.createRpcWorker({
 				configDir: path.join(__dirname, '../cfg'),
-				configName: 'loader-rpc_worker-test.conf',
+				configName: 'builder-rpc_worker-test.conf',
 				verbose: false
 			}).then(function(handler) {
 				rpcWorker = handler;
@@ -275,9 +275,9 @@ describe('opflow-loader:', function() {
 		var recycler;
 
 		it('should return the Recycler object if provided a correct configuration file', function(done) {
-			OpflowLoader.instance.createRecycler({
+			OpflowBuilder.instance.createRecycler({
 				configDir: path.join(__dirname, '../cfg'),
-				configName: 'loader-recycler-test.conf',
+				configName: 'builder-recycler-test.conf',
 				verbose: false
 			}).then(function(handler) {
 				recycler = handler;
@@ -296,7 +296,7 @@ describe('opflow-loader:', function() {
 		var serverlet;
 
 		it('should return the Serverlet object if provided a correct configuration file', function(done) {
-			serverlet = OpflowLoader.instance.createServerlet({
+			serverlet = OpflowBuilder.instance.createServerlet({
 				configurer: function(body, headers, finish) {},
 				rpcWorker: [{
 					routineId: 'fibonacci',
@@ -306,7 +306,7 @@ describe('opflow-loader:', function() {
 			}, {
 				autoinit: false,
 				configDir: path.join(__dirname, '../cfg'),
-				configName: 'loader-serverlet-test.conf',
+				configName: 'builder-serverlet-test.conf',
 				verbose: false
 			}).then(function(handler) {
 				serverlet = handler;
