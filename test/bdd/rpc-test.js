@@ -14,6 +14,7 @@ var Fibonacci = require('../lab/fibonacci').Fibonacci;
 var fibonacci = require('../lab/fibonacci').fibonacci;
 
 describe('opflow-master:', function() {
+	this.timeout(1000 * 60 * 60);
 
 	describe('single master - single worker:', function() {
 		var master, worker;
@@ -44,7 +45,6 @@ describe('opflow-master:', function() {
 		});
 
 		it('master request, worker process and response', function(done) {
-			this.timeout(100000);
 			var input = { number: 20 };
 			Promise.all([worker.process('fibonacci', taskWorker)]).then(function() {
 				return master.request('fibonacci', input, {
@@ -100,7 +100,6 @@ describe('opflow-master:', function() {
 		});
 
 		it('master request to multiple workers, it should return correct results', function(done) {
-			this.timeout(100000);
 			var data = [10, 8, 20, 15, 11, 19, 25, 12, 16, 35, 34, 28].map(function(n) { return { number: n }});
 			Promise.all([
 				worker1.process('fibonacci', taskWorker),
@@ -159,7 +158,6 @@ describe('opflow-master:', function() {
 		});
 
 		it('should bypass unmanged exception, workers are still alive', function(done) {
-			this.timeout(120000);
 			var data = [10, 8, 20, 15, 11, 19, 60, 25, 12, 77, 16, 35, 50, 34, 28].map(function(n) { return { number: n }});
 			var taskRejectValues = function(body, headers, response) {
 				debugx.enabled && debugx('Request[%s] receives: %s', headers.requestId, body);
@@ -240,7 +238,6 @@ describe('opflow-master:', function() {
 		});
 
 		it('should bypass unmanged exception, workers are still alive', function(done) {
-			this.timeout(120000);
 			var bypass = [11, 14, 15, 18, 20, 24, 25, 26, 47];
 			var total = 1000;
 			var right = 0;

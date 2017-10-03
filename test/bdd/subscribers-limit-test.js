@@ -12,6 +12,7 @@ var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
 
 describe('opflow-engine:', function() {
+	this.timeout(1000 * 60 * 60);
 
 	describe('no limit of consumers if maxSubscribers is undefined', function() {
 		var handler, executor;
@@ -28,7 +29,6 @@ describe('opflow-engine:', function() {
 		});
 
 		afterEach(function(done) {
-			this.timeout(60000);
 			handler.close().then(lodash.ary(done, 0));
 		});
 
@@ -74,7 +74,6 @@ describe('opflow-engine:', function() {
 		});
 
 		afterEach(function(done) {
-			this.timeout(60000);
 			handler.close().then(lodash.ary(done, 0));
 		});
 

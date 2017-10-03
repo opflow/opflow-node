@@ -11,6 +11,7 @@ var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
 
 describe('opflow-pubsub:', function() {
+	this.timeout(1000 * 60 * 60);
 
 	describe('multiple subscribers:', function() {
 		var total = 4;
@@ -101,7 +102,6 @@ describe('opflow-pubsub:', function() {
 			}).then(function() {
 				return publisher.publish({ type: 'end1' });
 			});
-			this.timeout(600000);
 		});
 
 		it('Publish to specific channel, only corresponding subscribers will receive messages', function(done) {
@@ -166,7 +166,6 @@ describe('opflow-pubsub:', function() {
 			}).then(function() {
 				return publisher.publish({ type: 'end2' });
 			});
-			this.timeout(600000);
 		});
 	});
 
@@ -215,7 +214,6 @@ describe('opflow-pubsub:', function() {
 					return handler.publish({ code: item, msg: 'Hello world' });
 				});
 			})
-			this.timeout(50*total);
 		});
 	});
 });

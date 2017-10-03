@@ -11,7 +11,8 @@ var appCfg = require('../lab/app-configuration');
 var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
 
-describe('opflow-engine:', function() {
+describe('opflow-recycler:', function() {
+	this.timeout(1000 * 60 * 60);
 
 	describe('recycle() method:', function() {
 		var handler;
@@ -69,7 +70,6 @@ describe('opflow-engine:', function() {
 					return handler.publish({ code: count, msg: 'Hello world' });
 				});
 			})
-			this.timeout(50*total);
 		});
 
 		it('assure the total of recovered items in trash (recycle-bin)', function(done) {
@@ -115,7 +115,6 @@ describe('opflow-engine:', function() {
 					return handler.publish({ code: count, msg: 'Hello world' });
 				});
 			});
-			this.timeout(50*total);
 		});
 	});
 
@@ -301,8 +300,6 @@ describe('opflow-engine:', function() {
 					done();
 				});
 			}, 'testsync');
-
-			this.timeout(100*total);
 		});
 	});
 });
