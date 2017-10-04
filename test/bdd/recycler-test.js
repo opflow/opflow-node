@@ -35,6 +35,7 @@ describe('opflow-recycler:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			Promise.all([
 				handler.ready(),
 				recycler.ready(),
@@ -139,6 +140,7 @@ describe('opflow-recycler:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			Promise.all([
 				handler.ready(),
 				recycler.ready(),

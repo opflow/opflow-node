@@ -52,6 +52,7 @@ describe('opflow-pubsub:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			publisher.ready().then(function() {
 				return Promise.all(lodash.map(subscribers, function(subscriber) {
 					return subscriber.ready();
@@ -182,6 +183,7 @@ describe('opflow-pubsub:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			handler.ready().then(lodash.ary(done, 0));
 		})
 

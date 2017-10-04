@@ -34,6 +34,7 @@ describe('opflow-master:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			Promise.all([ master.ready() ]).then(lodash.ary(done, 0));
 		});
 
@@ -84,6 +85,7 @@ describe('opflow-master:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			Promise.all([
 				master.ready(),
 				worker1.ready(),
@@ -142,6 +144,7 @@ describe('opflow-master:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			Promise.all([
 				master.ready(),
 				worker1.ready(),
@@ -222,6 +225,7 @@ describe('opflow-master:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			Promise.all([
 				master.ready(),
 				worker1.ready(),

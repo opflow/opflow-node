@@ -23,6 +23,7 @@ describe('opflow-engine:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			Promise.all([
 				handler.ready()
 			]).then(lodash.ary(done, 0));
@@ -70,6 +71,7 @@ describe('opflow-engine:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			handler.ready().then(lodash.ary(done, 0));
 		});
 

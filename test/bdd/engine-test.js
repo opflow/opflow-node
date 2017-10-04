@@ -7,12 +7,65 @@ var expect = require('chai').expect;
 var debugx = require('debug')('bdd:opflow:engine');
 var OpflowEngine = require('../../lib/engine');
 var OpflowExecutor = require('../../lib/executor');
+var LogTracer = require('../../lib/log_tracer');
 var appCfg = require('../lab/app-configuration');
 var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
 
 describe('opflow-engine:', function() {
 	this.timeout(1000 * 60 * 60);
+
+	var counter = {};
+	var updateCounter = function(counter, mappings, fromLog) {
+		for(var i=0; i<mappings.length; i++) {
+			if (fromLog.message == mappings[i].message) {
+				var fieldName = mappings[i].fieldName;
+				counter[fieldName] = (counter[fieldName] || 0) + 1;
+				break;
+			}
+		}
+	}
+
+	before(function() {
+		LogTracer.clearStringifyInterceptors();
+		LogTracer.addStringifyInterceptor(function(logobj) {
+			updateCounter(counter, [{
+				message: 'getConnection() - make a new connection',
+				fieldName: 'connectionCreated'
+			}, {
+				message: 'closeConnection() - connection is closed',
+				fieldName: 'collectionDestroyed'
+			}, {
+				message: 'getChannel() - make a new channel',
+				fieldName: 'channelCreated'
+			}, {
+				message: 'closeChannel() - channel is closed',
+				fieldName: 'channelDestroyed'
+			}, {
+				message: 'getProducerSandbox() - create producer sandbox',
+				fieldName: 'producerSandbox'
+			}, {
+				message: 'lockProducer() - obtain semaphore',
+				fieldName: 'producerLocked'
+			}, {
+				message: 'unlockProducer() - release semaphore',
+				fieldName: 'producerUnlocked'
+			}, {
+				message: 'getConsumerSandbox() - create consumer sandbox',
+				fieldName: 'consumerSandbox'
+			}, {
+				message: 'lockConsumer() - obtain mutex',
+				fieldName: 'consumerLocked'
+			}, {
+				message: 'unlockConsumer() - release mutex',
+				fieldName: 'consumerUnlocked'
+			}], logobj);
+		});
+	});
+
+	after(function() {
+		LogTracer.clearStringifyInterceptors();
+	})
 
 	describe('consume() method:', function() {
 		var handler;
@@ -26,20 +79,24 @@ describe('opflow-engine:', function() {
 
 		before(function(done) {
 			handler = new OpflowEngine(appCfg.extend());
-			executor = new OpflowExecutor({
-				engine: handler
-			});
+			executor = new OpflowExecutor({ engine: handler });
 			executor.purgeQueue(queue).then(lodash.ary(done, 0));
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
+			counter = {};
 			handler.ready().then(function() {
 				return executor.purgeQueue(queue);
 			}).then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {
-			handler.close().then(lodash.ary(done, 0));
+			handler.close().then(function() {
+				debugx.enabled && debugx('COUNTER: ' + JSON.stringify(counter));
+				assert.equal(counter.connectionCreated, counter.collectionDestroyed);
+				done();
+			});
 		});
 
 		it('preserve the order of elements', function(done) {
@@ -157,6 +214,7 @@ describe('opflow-engine:', function() {
 		});
 
 		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
 			Promise.all([
 				handler0.ready(), executor0.purgeQueue(queue0),
 				handler1.ready(), executor1.purgeQueue(queue1)
