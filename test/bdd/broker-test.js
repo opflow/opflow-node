@@ -46,7 +46,7 @@ describe('opflow-broker:', function() {
 					verbose: false
 				}).then(function(handler) {
 					serverlet = handler;
-					return handler;
+					return handler.start();
 				})
 			]).then(lodash.ary(done, 0)).catch(function(error) {
 				done(error);
