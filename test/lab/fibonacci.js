@@ -18,6 +18,11 @@ var Fibonacci = function Fibonacci(P) {
 	this.result = function() {
 		return { value: f, step: c, number: n };
 	}
+
+	this.calc = function() {
+		while(this.next()) {}
+		return this.result();
+	}
 }
 
 var fibonacci = function fibonacci(n) {

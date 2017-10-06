@@ -37,18 +37,7 @@ describe('opflow-broker:', function() {
 				}),
 				OpflowBuilder.instance.createServerlet({
 					configurer: function(body, headers, finish) {},
-					rpcWorker: [{
-						routineId: 'fibonacci',
-						handler: function(body, headers, response) {
-							response.emitStarted();
-							var fibonacci = new Fibonacci(JSON.parse(body)[0]);
-							while(fibonacci.next()) {
-								var r = fibonacci.result();
-								response.emitProgress(r.step, r.number);
-							};
-							response.emitCompleted(fibonacci.result());
-						}
-					}],
+					rpcWorker: [],
 					subscriber: function(body, headers, finish) {}
 				}, {
 					autoinit: false,
@@ -75,7 +64,7 @@ describe('opflow-broker:', function() {
 		});
 
 		it('should return object with registered method', function(done) {
-			var handler = commander.registerMethod({
+			var routineDescriptor = {
 				name: "fibonacci",
 				schema: {
 					"type": "array",
@@ -88,9 +77,18 @@ describe('opflow-broker:', function() {
 						}]
 					}
 				}
-			});
-			handler.fibonacci({number: 40}).then(function(value) {
-				console.log('XXXXXXXXXXX: %s', JSON.stringify(value));
+			}
+
+			serverlet.registerRoutine(lodash.defaults({
+				handler: function(input) {
+					return new Fibonacci(input).calc();
+				}
+			}, routineDescriptor));
+
+			var routine = commander.registerRoutine(routineDescriptor);
+
+			routine.fibonacci({number: 40}).then(function(value) {
+				console.log('Fibonacci output: %s', JSON.stringify(value));
 				done(null);
 			}).catch(function(error) {
 				done(error);
