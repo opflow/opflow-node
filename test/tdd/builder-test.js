@@ -292,11 +292,33 @@ describe('opflow-builder:', function() {
 		});
 	});
 
+	describe('createCommander() method:', function() {
+		var commander;
+
+		it('should return the Commander object if provided a correct configuration file', function(done) {
+			OpflowBuilder.instance.createCommander({
+				autoinit: false,
+				configDir: path.join(__dirname, '../cfg'),
+				configName: 'builder-commander-test.conf',
+				verbose: false
+			}).then(function(handler) {
+				commander = handler;
+				done();
+			}).catch(function(error) {
+				done(error);
+			});
+		});
+
+		afterEach(function(done) {
+			commander && commander.close().then(lodash.ary(done, 0));
+		});
+	});
+
 	describe('createServerlet() method:', function() {
 		var serverlet;
 
 		it('should return the Serverlet object if provided a correct configuration file', function(done) {
-			serverlet = OpflowBuilder.instance.createServerlet({
+			OpflowBuilder.instance.createServerlet({
 				configurer: function(body, headers, finish) {},
 				rpcWorker: [{
 					routineId: 'fibonacci',

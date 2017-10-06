@@ -13,7 +13,7 @@ var Loadsync = require('loadsync');
 var Fibonacci = require('../lab/fibonacci').Fibonacci;
 var fibonacci = require('../lab/fibonacci').fibonacci;
 
-describe('opflow-master:', function() {
+describe('opflow-rpc:', function() {
 	this.timeout(1000 * 60 * 60);
 
 	describe('single master - single worker:', function() {
