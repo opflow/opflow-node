@@ -16,6 +16,34 @@ var fibonacci = require('../lab/fibonacci').fibonacci;
 describe('opflow-rpc:', function() {
 	this.timeout(1000 * 60 * 60);
 
+	var logCounter = {};
+	var LogTracer = opflow.LogTracer;
+	before(function() {
+		LogTracer.clearStringifyInterceptors();
+		LogTracer.addStringifyInterceptor(function(logobj) {
+			appCfg.updateCounter(logCounter, [{
+				message: 'request() - make a request',
+				fieldName: 'rpcRequestTotal'
+			}, {
+				message: 'request() - receive final result',
+				fieldName: 'rpcRequestReturned'
+			}, {
+				message: 'Task is timeout',
+				fieldName: 'extractResultTimeout'
+			}, {
+				message: 'Task is done',
+				fieldName: 'extractResultCompleted'
+			}, {
+				message: 'Task is failed',
+				fieldName: 'extractResultFailed'
+			}], logobj);
+		});
+	});
+
+	after(function() {
+		LogTracer.clearStringifyInterceptors();
+	});
+
 	describe('single master - single worker:', function() {
 		var master, worker;
 
@@ -102,6 +130,7 @@ describe('opflow-rpc:', function() {
 		});
 
 		it('master request to multiple workers, it should return correct results', function(done) {
+			logCounter = {};
 			var data = [10, 8, 20, 15, 11, 19, 25, 12, 16, 35, 34, 28].map(function(n) { return { number: n }});
 			Promise.all([
 				worker1.process('fibonacci', taskWorker),
@@ -116,6 +145,9 @@ describe('opflow-rpc:', function() {
 				}, {concurrency: 4});
 			}).then(function(results) {
 				lodash.forEach(results, validateResult);
+				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
+				assert.equal(logCounter.rpcRequestTotal, data.length);
+				assert.equal(logCounter.rpcRequestTotal, logCounter.rpcRequestReturned);
 				done(null);
 			}).catch(function(error) {
 				done(error);
@@ -161,6 +193,7 @@ describe('opflow-rpc:', function() {
 		});
 
 		it('should bypass unmanged exception, workers are still alive', function(done) {
+			logCounter = {};
 			var data = [10, 8, 20, 15, 11, 19, 60, 25, 12, 77, 16, 35, 50, 34, 28].map(function(n) { return { number: n }});
 			var taskRejectValues = function(body, headers, response) {
 				debugx.enabled && debugx('Request[%s] receives: %s', headers.requestId, body);
@@ -188,6 +221,11 @@ describe('opflow-rpc:', function() {
 					});
 				}, {concurrency: 4});
 			}).then(function(results) {
+				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
+				assert.equal(logCounter.rpcRequestTotal, data.length);
+				assert.equal(logCounter.rpcRequestReturned, data.length - 3);
+				assert.equal(logCounter.extractResultTimeout, 3);
+				assert.equal(logCounter.extractResultCompleted, data.length - 3);
 				assert.equal(results.length, data.length);
 				Promise.reduce(results, function(acc, result) {
 					if (result.completed) acc.success += 1;
@@ -242,6 +280,7 @@ describe('opflow-rpc:', function() {
 		});
 
 		it('should bypass unmanged exception, workers are still alive', function(done) {
+			logCounter = {};
 			var bypass = [11, 14, 15, 18, 20, 24, 25, 26, 47];
 			var total = 1000;
 			var right = 0;
@@ -287,6 +326,10 @@ describe('opflow-rpc:', function() {
 			}).then(function(results) {
 				assert.equal(acc.total, total);
 				debugx.enabled && debugx('Result: %s', JSON.stringify(acc));
+				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
+				assert.equal(logCounter.rpcRequestTotal, total);
+				assert.equal(logCounter.rpcRequestReturned, logCounter.extractResultCompleted);
+				assert.equal(logCounter.rpcRequestReturned + logCounter.extractResultTimeout, logCounter.rpcRequestTotal);
 				done();
 			}).catch(function(error) {
 				done(error);

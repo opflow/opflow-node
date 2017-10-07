@@ -19,7 +19,7 @@ module.exports = {
 	},
 	checkSkip: function() {
 		var testTitle = this.currentTest.title || '';
-		var selected = process.env.TDD_SELECTED;
+		var selected = process.env.OPFLOW_SELECTED_TEST || process.env.TDD_SELECTED;
 		var selecteds = selected ? selected.split(',') : [];
 		var skipped = selecteds.length > 0;
 		for(var i=0; i<selecteds.length; i++) {
@@ -29,5 +29,14 @@ module.exports = {
 			}
 		}
 		skipped && this.skip();
+	},
+	updateCounter: function(counter, mappings, fromLog) {
+		for(var i=0; i<mappings.length; i++) {
+			if (fromLog.message == mappings[i].message) {
+				var fieldName = mappings[i].fieldName;
+				counter[fieldName] = (counter[fieldName] || 0) + 1;
+				break;
+			}
+		}
 	}
 };

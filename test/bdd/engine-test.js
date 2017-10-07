@@ -16,20 +16,10 @@ describe('opflow-engine:', function() {
 	this.timeout(1000 * 60 * 60);
 
 	var counter = {};
-	var updateCounter = function(counter, mappings, fromLog) {
-		for(var i=0; i<mappings.length; i++) {
-			if (fromLog.message == mappings[i].message) {
-				var fieldName = mappings[i].fieldName;
-				counter[fieldName] = (counter[fieldName] || 0) + 1;
-				break;
-			}
-		}
-	}
-
 	before(function() {
 		LogTracer.clearStringifyInterceptors();
 		LogTracer.addStringifyInterceptor(function(logobj) {
-			updateCounter(counter, [{
+			appCfg.updateCounter(counter, [{
 				message: 'getConnection() - make a new connection',
 				fieldName: 'connectionCreated'
 			}, {

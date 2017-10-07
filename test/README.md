@@ -1,5 +1,22 @@
 # Testing
 
+## Environment variables
+
+* `OPFLOW_BASE64UUID`: Use Base64 format for UUID;
+* `OPFLOW_CONLOG`: Enable console log (ie. debug module);
+* `OPFLOW_LOGTRACER`: LogTracer level - enable LogTracer for this level;
+* `OPFLOW_SELECTED_TEST`: list of test cases will be run;
+
+Example:
+
+```shell
+export OPFLOW_BASE64UUID=true
+export OPFLOW_LOGTRACER=conlog
+export OPFLOW_CONLOG=true
+export DEBUG=bdd*,opflow*
+TDD_SELECTED="multiple workers" node_modules/.bin/mocha test/bdd/rpc-test.js
+```
+
 ## TDD Environment Variables
 
 ```shell
