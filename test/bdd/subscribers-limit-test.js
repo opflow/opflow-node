@@ -14,7 +14,7 @@ var Loadsync = require('loadsync');
 describe('opflow-engine:', function() {
 	this.timeout(1000 * 60 * 60);
 
-	describe('no limit of consumers if maxSubscribers is undefined', function() {
+	describe('no limit of consumers if consumerLimit is undefined', function() {
 		var handler, executor;
 
 		before(function() {
@@ -89,7 +89,7 @@ describe('opflow-engine:', function() {
 					return success;
 				}).catch(function(failure) {
 					debugx.enabled && debugx('received exception: %s', JSON.stringify(failure));
-					assert.equal(failure.maxSubscribers, limit);
+					assert.equal(failure.consumerLimit, limit);
 					return failure;
 				});
 			}).then(function() {

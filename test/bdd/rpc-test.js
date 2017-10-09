@@ -44,6 +44,46 @@ describe('opflow-rpc:', function() {
 		LogTracer.clearStringifyInterceptors();
 	});
 
+	describe('multiple masters with explicit responseName:', function() {
+		var masters, workers;
+
+		before(function() {
+			masters = lodash.range(2).map(function() {
+				return new opflow.RpcMaster(appCfg.extend({
+					routingKey: 'tdd-opflow-rpc',
+					responseName: 'tdd-opflow-response',
+					monitorTimeout: 2000,
+					progressEnabled: false,
+					autoinit: false
+				}))
+			});
+		});
+
+		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
+			done();
+		});
+
+		afterEach(function(done) {
+			var result = [];
+			masters.forEach(function(master) {
+				result.push(master.close());
+			});
+			Promise.all(result).then(lodash.ary(done, 0));
+		});
+
+		it('should return exceeding limit error when more than 1 masters use the same responseQueue', function(done) {
+			var series = Promise.mapSeries(masters, function(master) {
+				return master.ready();
+			});
+			series.then(function() {
+				done('should return exceeding limit error');
+			}).catch(function(error) {
+				done(null);
+			});
+		});
+	});
+
 	describe('single master - single worker:', function() {
 		var master, worker;
 
@@ -283,26 +323,31 @@ describe('opflow-rpc:', function() {
 			logCounter = {};
 			var bypass = [11, 14, 15, 18, 20, 24, 25, 26, 47];
 			var total = 1000;
-			var right = 0;
+			var acc = {total: 0, completed: 0, failed: 0, timeout: 0, skipped: 0};
 			var taskRejectValues = function(body, headers, response) {
 				debugx.enabled && debugx('Request[%s] receives: %s', headers.requestId, body);
 				body = JSON.parse(body);
 				var pos = bypass.indexOf(body.number);
 				response.emitStarted();
-				if (0 <= pos && pos < 3) throw new Error('failed with: ' + body.number);
+				if (0 <= pos && pos < 3) {
+					acc.skipped += 1;
+					throw new Error('failed with: ' + body.number);
+				}
 				var fibonacci = new Fibonacci(body);
 				while(fibonacci.next()) {
 					var r = fibonacci.result();
 					response.emitProgress(r.step, r.number);
 					if (3 <= pos && pos < 6 && r.step > 5) {
+						acc.skipped += 1;
 						throw new Error('failed with: ' + body.number);
 					}
 				};
-				if (6 <= pos) throw new Error('failed with: ' + body.number);
-				right += 1;
+				if (6 <= pos) {
+					acc.skipped += 1;
+					throw new Error('failed with: ' + body.number);
+				}
 				response.emitCompleted(fibonacci.result());
 			}
-			var acc = {total: 0, completed: 0, failed: 0};
 			Promise.all([
 				worker1.process('fibonacci', taskRejectValues),
 				worker2.process('fibonacci', taskRejectValues)
@@ -314,18 +359,18 @@ describe('opflow-rpc:', function() {
 					}).then(function(job) {
 						return job.extractResult();
 					}).then(function(result) {
-						debugx.enabled && debugx('#%s: %s', count,
-							result.completed && 'completed' ||
-							result.failed && 'failed' ||
-							result.timeout && 'timeout');
+						debugx.enabled && debugx('#%s: %s', count, result.status);
 						if (result.completed) acc.completed += 1;
-						if (result.failed || result.timeout) acc.failed += 1;
+						if (result.failed) acc.failed += 1;
+						if (result.timeout) acc.timeout += 1;
 						return 1;
 					});
 				}, {concurrency: 10});
 			}).then(function(results) {
-				assert.equal(acc.total, total);
 				debugx.enabled && debugx('Result: %s', JSON.stringify(acc));
+				assert.equal(acc.total, total);
+				assert.equal(acc.completed + acc.failed + acc.timeout, total);
+				assert.equal(acc.timeout, acc.skipped);
 				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
 				assert.equal(logCounter.rpcRequestTotal, total);
 				assert.equal(logCounter.rpcRequestReturned, logCounter.extractResultCompleted);
@@ -361,14 +406,9 @@ describe('opflow-rpc:', function() {
 
 		beforeEach(function(done) {
 			appCfg.checkSkip.call(this);
-			var result = [];
-			masters.forEach(function(master) {
-				result.push(master.ready());
-			});
-			workers.forEach(function(worker) {
-				result.push(worker.ready());
-			});
-			Promise.all(result).then(lodash.ary(done, 0));
+			Promise.mapSeries(lodash.concat(masters, workers), function(handler) {
+				return handler.ready();
+			}).then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {
@@ -386,24 +426,31 @@ describe('opflow-rpc:', function() {
 			logCounter = {};
 			var bypass = [11, 14, 15, 18, 20, 24, 25, 26, 47];
 			var total = 1000;
+			var acc = {total: 0, completed: 0, failed: 0, timeout: 0, skipped: 0};
 			var taskRejectValues = function(body, headers, response) {
 				debugx.enabled && debugx('Request[%s] receives: %s', headers.requestId, body);
 				body = JSON.parse(body);
 				var pos = bypass.indexOf(body.number);
 				response.emitStarted();
-				if (0 <= pos && pos < 3) throw new Error('failed with: ' + body.number);
+				if (0 <= pos && pos < 3) {
+					acc.skipped += 1;
+					throw new Error('failed with: ' + body.number);
+				}
 				var fibonacci = new Fibonacci(body);
 				while(fibonacci.next()) {
 					var r = fibonacci.result();
 					response.emitProgress(r.step, r.number);
 					if (3 <= pos && pos < 6 && r.step > 5) {
+						acc.skipped += 1;
 						throw new Error('failed with: ' + body.number);
 					}
 				};
-				if (6 <= pos) throw new Error('failed with: ' + body.number);
+				if (6 <= pos) {
+					acc.skipped += 1;
+					throw new Error('failed with: ' + body.number);
+				}
 				response.emitCompleted(fibonacci.result());
 			}
-			var acc = {total: 0, completed: 0, failed: 0, timeout: 0};
 			Promise.map(workers, function(worker) {
 				return worker.process('fibonacci', taskRejectValues)
 			}).then(function() {
@@ -426,6 +473,7 @@ describe('opflow-rpc:', function() {
 				debugx.enabled && debugx('Result: %s', JSON.stringify(acc));
 				assert.equal(acc.total, total);
 				assert.equal(acc.completed + acc.failed + acc.timeout, total);
+				assert.equal(acc.timeout, acc.skipped);
 				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
 				assert.equal(logCounter.rpcRequestTotal, total);
 				assert.equal(logCounter.rpcRequestReturned, logCounter.extractResultCompleted);
