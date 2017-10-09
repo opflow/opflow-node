@@ -228,11 +228,11 @@ describe('opflow-rpc:', function() {
 				assert.equal(logCounter.extractResultCompleted, data.length - 3);
 				assert.equal(results.length, data.length);
 				Promise.reduce(results, function(acc, result) {
-					if (result.completed) acc.success += 1;
+					if (result.completed) acc.completed += 1;
 					return acc;
-				}, { success: 0 }).then(function(stats) {
-					assert.equal(stats.success, data.length - 3);
-					debugx.enabled && debugx('Success total: %s', stats.success);
+				}, { completed: 0 }).then(function(stats) {
+					assert.equal(stats.completed, data.length - 3);
+					debugx.enabled && debugx('Success total: %s', stats.completed);
 					done(null);
 				});
 			}).catch(function(error) {
@@ -279,7 +279,7 @@ describe('opflow-rpc:', function() {
 			]).then(lodash.ary(done, 0));
 		});
 
-		it('should bypass unmanged exception, workers are still alive', function(done) {
+		it('SM/MW - should bypass unmanged exception, workers are still alive', function(done) {
 			logCounter = {};
 			var bypass = [11, 14, 15, 18, 20, 24, 25, 26, 47];
 			var total = 1000;
@@ -302,7 +302,7 @@ describe('opflow-rpc:', function() {
 				right += 1;
 				response.emitCompleted(fibonacci.result());
 			}
-			var acc = {total: 0, success: 0, failure: 0};
+			var acc = {total: 0, completed: 0, failed: 0};
 			Promise.all([
 				worker1.process('fibonacci', taskRejectValues),
 				worker2.process('fibonacci', taskRejectValues)
@@ -318,14 +318,114 @@ describe('opflow-rpc:', function() {
 							result.completed && 'completed' ||
 							result.failed && 'failed' ||
 							result.timeout && 'timeout');
-						if (result.completed) acc.success += 1;
-						if (result.failed || result.timeout) acc.failure += 1;
+						if (result.completed) acc.completed += 1;
+						if (result.failed || result.timeout) acc.failed += 1;
 						return 1;
 					});
 				}, {concurrency: 10});
 			}).then(function(results) {
 				assert.equal(acc.total, total);
 				debugx.enabled && debugx('Result: %s', JSON.stringify(acc));
+				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
+				assert.equal(logCounter.rpcRequestTotal, total);
+				assert.equal(logCounter.rpcRequestReturned, logCounter.extractResultCompleted);
+				assert.equal(logCounter.rpcRequestReturned + logCounter.extractResultTimeout, logCounter.rpcRequestTotal);
+				done();
+			}).catch(function(error) {
+				done(error);
+			});
+		});
+	});
+
+	describe('multiple masters / multiple workers:', function() {
+		var masters, workers;
+
+		before(function() {
+			masters = lodash.range(5).map(function() {
+				return new opflow.RpcMaster(appCfg.extend({
+					routingKey: 'tdd-opflow-rpc',
+					monitorTimeout: 2000,
+					progressEnabled: false,
+					autoinit: false
+				}))
+			});
+			workers = lodash.range(5).map(function() {
+				return new opflow.RpcWorker(appCfg.extend({
+					routingKey: 'tdd-opflow-rpc',
+					responseName: 'tdd-opflow-response',
+					operatorName: 'tdd-opflow-operator',
+					autoinit: false
+				}));
+			});
+		});
+
+		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
+			var result = [];
+			masters.forEach(function(master) {
+				result.push(master.ready());
+			});
+			workers.forEach(function(worker) {
+				result.push(worker.ready());
+			});
+			Promise.all(result).then(lodash.ary(done, 0));
+		});
+
+		afterEach(function(done) {
+			var result = [];
+			masters.forEach(function(master) {
+				result.push(master.close());
+			});
+			workers.forEach(function(worker) {
+				result.push(worker.close());
+			});
+			Promise.all(result).then(lodash.ary(done, 0));
+		});
+
+		it('MM/MW - should bypass unmanged exception, workers are still alive', function(done) {
+			logCounter = {};
+			var bypass = [11, 14, 15, 18, 20, 24, 25, 26, 47];
+			var total = 1000;
+			var taskRejectValues = function(body, headers, response) {
+				debugx.enabled && debugx('Request[%s] receives: %s', headers.requestId, body);
+				body = JSON.parse(body);
+				var pos = bypass.indexOf(body.number);
+				response.emitStarted();
+				if (0 <= pos && pos < 3) throw new Error('failed with: ' + body.number);
+				var fibonacci = new Fibonacci(body);
+				while(fibonacci.next()) {
+					var r = fibonacci.result();
+					response.emitProgress(r.step, r.number);
+					if (3 <= pos && pos < 6 && r.step > 5) {
+						throw new Error('failed with: ' + body.number);
+					}
+				};
+				if (6 <= pos) throw new Error('failed with: ' + body.number);
+				response.emitCompleted(fibonacci.result());
+			}
+			var acc = {total: 0, completed: 0, failed: 0, timeout: 0};
+			Promise.map(workers, function(worker) {
+				return worker.process('fibonacci', taskRejectValues)
+			}).then(function() {
+				return Promise.map(lodash.range(total), function(count) {
+					acc.total += 1;
+					var ind = lodash.random(masters.length - 1);
+					return masters[ind].request('fibonacci', {
+						number: lodash.random(10, 50)
+					}).then(function(job) {
+						return job.extractResult();
+					}).then(function(result) {
+						debugx.enabled && debugx('#%s: %s', count, result.status);
+						if (result.completed) acc.completed += 1;
+						if (result.failed) acc.failed += 1;
+						if (result.timeout) acc.timeout += 1;
+						return 1;
+					});
+				}, {concurrency: 30});
+			}).then(function(results) {
+				debugx.enabled && debugx('Result: %s', JSON.stringify(acc));
+				assert.equal(acc.total, total);
+				assert.equal(acc.completed + acc.failed + acc.timeout, total);
 				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
 				assert.equal(logCounter.rpcRequestTotal, total);
 				assert.equal(logCounter.rpcRequestReturned, logCounter.extractResultCompleted);

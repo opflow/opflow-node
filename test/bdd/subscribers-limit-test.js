@@ -62,7 +62,7 @@ describe('opflow-engine:', function() {
 		var limit = 7;
 		var consumerOpts = {
 			queueName: 'tdd-opflow-queue',
-			maxSubscribers: limit
+			consumerLimit: limit
 		}
 
 		before(function() {
