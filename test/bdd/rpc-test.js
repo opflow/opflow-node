@@ -282,13 +282,14 @@ describe('opflow-rpc:', function() {
 	});
 
 	describe('mass RPC requests sending and receiving:', function() {
+		var total = 1000;
 		var master, worker1, worker2;
 
 		before(function() {
 			master = new opflow.RpcMaster(appCfg.extend({
 				routingKey: 'tdd-opflow-rpc',
 				responseName: 'tdd-opflow-response',
-				monitorTimeout: 2000,
+				monitorTimeout: 10 * total,
 				progressEnabled: false,
 				autoinit: false
 			}));
@@ -322,7 +323,6 @@ describe('opflow-rpc:', function() {
 		it('SM/MW - should bypass unmanged exception, workers are still alive', function(done) {
 			logCounter = {};
 			var bypass = [11, 14, 15, 18, 20, 24, 25, 26, 47];
-			var total = 1000;
 			var acc = {total: 0, completed: 0, failed: 0, timeout: 0, skipped: 0};
 			var taskRejectValues = function(body, headers, response) {
 				debugx.enabled && debugx('Request[%s] receives: %s', headers.requestId, body);
@@ -383,13 +383,14 @@ describe('opflow-rpc:', function() {
 	});
 
 	describe('multiple masters / multiple workers:', function() {
+		var total = 1000;
 		var masters, workers;
 
 		before(function() {
 			masters = lodash.range(5).map(function() {
 				return new opflow.RpcMaster(appCfg.extend({
 					routingKey: 'tdd-opflow-rpc',
-					monitorTimeout: 2000,
+					monitorTimeout: 10 * total,
 					progressEnabled: false,
 					autoinit: false
 				}))
@@ -425,7 +426,6 @@ describe('opflow-rpc:', function() {
 		it('MM/MW - should bypass unmanged exception, workers are still alive', function(done) {
 			logCounter = {};
 			var bypass = [11, 14, 15, 18, 20, 24, 25, 26, 47];
-			var total = 1000;
 			var acc = {total: 0, completed: 0, failed: 0, timeout: 0, skipped: 0};
 			var taskRejectValues = function(body, headers, response) {
 				debugx.enabled && debugx('Request[%s] receives: %s', headers.requestId, body);

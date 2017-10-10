@@ -52,6 +52,12 @@ describe('opflow-engine:', function() {
 			}, {
 				message: 'unlockConsumer() - release mutex',
 				fieldName: 'consumerUnlocked'
+			}, {
+				message: 'produce() confirmation has failed',
+				fieldName: 'confirmationFailed'
+			}, {
+				message: 'produce() confirmation has completed',
+				fieldName: 'confirmationCompleted'
 			}], logobj);
 		});
 	});
@@ -297,7 +303,7 @@ describe('opflow-engine:', function() {
 
 		before(function(done) {
 			handler = new OpflowEngine(appCfg.extend({
-				confirmable: true
+				confirmation: {}
 			}));
 			executor = new OpflowExecutor({ engine: handler });
 			executor.purgeQueue(queue).then(lodash.ary(done, 0));
@@ -313,10 +319,29 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			handler.close().then(function() {
+				debugx.enabled && debugx('COUNTER: ' + JSON.stringify(counter));
 				assert.equal(counter.confirmChannel, 1);
 				assert.equal(counter.connectionCreated, counter.collectionDestroyed);
 				done();
 			});
+		});
+
+		it('Confirm that server has dispatched messages', function(done) {
+			var total = 100;
+			var index = 0;
+			Promise.mapSeries(lodash.range(total), function(count) {
+				return handler.produce({
+					code: count, msg: 'Hello world'
+				}, {
+					appId: 'engine-operator-tdd',
+					messageId: 'message#' + count,
+					correlationId: JSON.stringify(count),
+					headers: {
+						key1: 'test ' + count,
+						key2: 'test ' + (count + 1)
+					}
+				});
+			}).then(lodash.ary(done, 0));
 		});
 
 		it('Resend messages that have not confirmed', function(done) {
