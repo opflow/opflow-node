@@ -29,6 +29,9 @@ describe('opflow-engine:', function() {
 				message: 'getChannel() - make a new channel',
 				fieldName: 'channelCreated'
 			}, {
+				message: 'getChannel() - createConfirmChannel',
+				fieldName: 'confirmChannel'
+			}, {
 				message: 'closeChannel() - channel is closed',
 				fieldName: 'channelDestroyed'
 			}, {
@@ -276,6 +279,76 @@ describe('opflow-engine:', function() {
 				lodash.range(total).forEach(function(count) {
 					handler0.produce({ code: count, msg: 'Hello world' }, {}, {
 						routingKey: 'tdd-opflow-backup'
+					});
+				});
+			});
+		});
+	});
+
+	describe('ConfirmChannel:', function() {
+		var handler;
+		var executor;
+		var queue = {
+			queueName: 'tdd-opflow-queue',
+			durable: true,
+			noAck: false,
+			binding: true
+		};
+
+		before(function(done) {
+			handler = new OpflowEngine(appCfg.extend({
+				confirmable: true
+			}));
+			executor = new OpflowExecutor({ engine: handler });
+			executor.purgeQueue(queue).then(lodash.ary(done, 0));
+		});
+
+		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
+			counter = {};
+			handler.ready().then(function() {
+				return executor.purgeQueue(queue);
+			}).then(lodash.ary(done, 0));
+		});
+
+		afterEach(function(done) {
+			handler.close().then(function() {
+				assert.equal(counter.confirmChannel, 1);
+				assert.equal(counter.connectionCreated, counter.collectionDestroyed);
+				done();
+			});
+		});
+
+		it('Resend messages that have not confirmed', function(done) {
+			var total = 10;
+			var index = 0;
+			handler.consume(function(msg, info, finish) {
+				var message_code = parseInt(msg.properties.correlationId);
+				var message = JSON.parse(msg.content);
+				assert(message.code === index++);
+				assert.equal(msg.properties.appId, 'engine-operator-tdd');
+				assert.equal(msg.properties.messageId, 'message#' + message_code);
+				assert.deepInclude(msg.properties.headers, {
+					key1: 'test ' + message_code,
+					key2: 'test ' + (message_code + 1)
+				});
+				assert.isTrue(Object.keys(msg.properties.headers).length >= 2);
+				finish();
+				if (index >= total) {
+					handler.cancelConsumer(info).then(lodash.ary(done, 0));
+				}
+			}, queue).then(function() {
+				Promise.mapSeries(lodash.range(total), function(count) {
+					return handler.produce({
+						code: count, msg: 'Hello world'
+					}, {
+						appId: 'engine-operator-tdd',
+						messageId: 'message#' + count,
+						correlationId: JSON.stringify(count),
+						headers: {
+							key1: 'test ' + count,
+							key2: 'test ' + (count + 1)
+						}
 					});
 				});
 			});
