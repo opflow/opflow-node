@@ -20,20 +20,20 @@ describe('opflow-engine:', function() {
 		LogTracer.clearStringifyInterceptors();
 		LogTracer.addStringifyInterceptor(function(logobj) {
 			appCfg.updateCounter(counter, [{
-				message: 'getConnection() - make a new connection',
+				message: 'getConnection() - connection is created',
 				fieldName: 'connectionCreated'
 			}, {
 				message: 'closeConnection() - connection is closed',
-				fieldName: 'collectionDestroyed'
+				fieldName: 'connectionDestroyed'
 			}, {
 				message: 'getChannel() - make a new channel',
 				fieldName: 'channelCreated'
 			}, {
-				message: 'getChannel() - createConfirmChannel',
-				fieldName: 'confirmChannel'
-			}, {
 				message: 'closeChannel() - channel is closed',
 				fieldName: 'channelDestroyed'
+			}, {
+				message: 'getChannel() - createConfirmChannel',
+				fieldName: 'confirmChannel'
 			}, {
 				message: 'getProducerSandbox() - create producer sandbox',
 				fieldName: 'producerSandbox'
@@ -93,7 +93,7 @@ describe('opflow-engine:', function() {
 		afterEach(function(done) {
 			handler.close().then(function() {
 				debugx.enabled && debugx('COUNTER: ' + JSON.stringify(counter));
-				assert.equal(counter.connectionCreated, counter.collectionDestroyed);
+				assert.equal(counter.connectionCreated, counter.connectionDestroyed);
 				done();
 			});
 		});
@@ -321,7 +321,7 @@ describe('opflow-engine:', function() {
 			handler.close().then(function() {
 				debugx.enabled && debugx('COUNTER: ' + JSON.stringify(counter));
 				assert.equal(counter.confirmChannel, 1);
-				assert.equal(counter.connectionCreated, counter.collectionDestroyed);
+				assert.equal(counter.connectionCreated, counter.connectionDestroyed);
 				done();
 			});
 		});

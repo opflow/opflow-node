@@ -103,7 +103,7 @@ describe('opflow-rpc:', function() {
 
 		beforeEach(function(done) {
 			appCfg.checkSkip.call(this);
-			Promise.all([ master.ready() ]).then(lodash.ary(done, 0));
+			Promise.all([ master.ready(), worker.ready() ]).then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {
