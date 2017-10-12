@@ -2,6 +2,7 @@
 
 var Promise = require('bluebird');
 var lodash = require('lodash');
+var Readable = require('stream').Readable;
 var util = require('util');
 var faker = require('faker');
 
@@ -31,6 +32,28 @@ var BigObjectGenerator = helper.BigObjectGenerator = function(params) {
 		this.index++;
 		return Promise.resolve(obj).delay(params.timeout || 0);
 	}
+}
+
+var BigObjectStreamify = helper.BigObjectStreamify = function(generator, options) {
+	options = options || {};
+	Readable.call(this, options);
+	this.generator = generator;
+}
+
+util.inherits(BigObjectStreamify, Readable);
+
+BigObjectStreamify.prototype._read = function() {
+	var self = this;
+	self.generator.next().then(function(obj) {
+		if (obj === null) {
+			self.emit('end');
+		} else {
+			self.push(obj);
+		}
+		return obj;
+	}).catch(function(error) {
+		self.emit('error', error);
+	})
 }
 
 module.exports = helper;

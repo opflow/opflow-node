@@ -38,6 +38,12 @@ describe('opflow-engine:', function() {
 				message: 'getProducerSandbox() - create producer sandbox',
 				fieldName: 'producerSandbox'
 			}, {
+				message: 'lockProducer() - obtain mutex',
+				fieldName: 'producerLocked'
+			}, {
+				message: 'lockProducer() - release mutex',
+				fieldName: 'producerUnlocked'
+			}, {
 				message: 'lockProducer() - obtain semaphore',
 				fieldName: 'producerLocked'
 			}, {
@@ -58,6 +64,12 @@ describe('opflow-engine:', function() {
 			}, {
 				message: 'produce() confirmation has completed',
 				fieldName: 'confirmationCompleted'
+			}, {
+				message: 'exhaust() confirmation has failed',
+				fieldName: 'confirmStreamFailed'
+			}, {
+				message: 'exhaust() confirmation has completed',
+				fieldName: 'confirmStreamCompleted'
 			}], logobj);
 		});
 	});
@@ -320,8 +332,10 @@ describe('opflow-engine:', function() {
 		afterEach(function(done) {
 			handler.close().then(function() {
 				debugx.enabled && debugx('COUNTER: ' + JSON.stringify(counter));
-				assert.equal(counter.confirmChannel, 1);
 				assert.equal(counter.connectionCreated, counter.connectionDestroyed);
+				assert.equal(counter.channelCreated, counter.channelDestroyed);
+				assert.equal(counter.confirmChannel, 1);
+				assert.equal(counter.producerLocked, counter.producerUnlocked);
 				done();
 			});
 		});
@@ -376,6 +390,106 @@ describe('opflow-engine:', function() {
 						}
 					});
 				});
+			});
+		});
+	});
+
+	describe('exhaust():', function() {
+		var FIELDS = bogen.FIELDS || 10000;
+		var TOTAL = bogen.TOTAL || 1000;
+		var TIMEOUT = bogen.TIMEOUT || 0;
+		var handler, executor;
+		var queue = {
+			queueName: 'tdd-opflow-queue',
+			durable: true,
+			noAck: false,
+			binding: true
+		};
+
+		before(function(done) {
+			handler = new OpflowEngine(appCfg.extend({
+				confirmation: {}
+			}));
+			executor = new OpflowExecutor({ engine: handler });
+			executor.purgeQueue(queue).then(lodash.ary(done, 0));
+		});
+
+		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
+			counter = {};
+			handler.ready().then(function() {
+				return executor.purgeQueue(queue);
+			}).then(lodash.ary(done, 0));
+		});
+
+		afterEach(function(done) {
+			handler.close().then(function() {
+				debugx.enabled && debugx('COUNTER: ' + JSON.stringify(counter));
+				assert.equal(counter.connectionCreated, counter.connectionDestroyed);
+				assert.equal(counter.channelCreated, counter.channelDestroyed);
+				assert.equal(counter.confirmChannel, 1);
+				assert.equal(counter.confirmStreamCompleted, TOTAL);
+				assert.equal(counter.producerLocked, counter.producerUnlocked);
+				assert.equal(counter.consumerLocked, counter.consumerUnlocked);
+				done();
+			});
+		});
+
+		it('emit drain event if the exhaust() is overflowed', function(done) {
+			var index = 0;
+			var check = lodash.range(TOTAL);
+			var bog = new bogen.BigObjectGenerator({numberOfFields: FIELDS, max: TOTAL, timeout: TIMEOUT});
+			handler.consume(function(msg, info, finish) {
+				var message = JSON.parse(msg.content);
+				check.splice(check.indexOf(message.code), 1);
+				finish();
+				if (++index >= TOTAL) {
+					handler.cancelConsumer(info).then(lodash.ary(done, 0));
+				}
+			}, queue).then(function() {
+				var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
+				return handler.exhaust(bos);
+			}).then(function() {
+				debugx.enabled && debugx('exhaust() - done');
+			}).catch(function(err) {
+				debugx.enabled && debugx('exhaust() - error');
+				done(err);
+			});
+		});
+
+		it('insert some messages to working stream', function(done) {
+			var count = 0;
+			var check = lodash.range(TOTAL);
+			var bog = new bogen.BigObjectGenerator({numberOfFields: FIELDS, max: TOTAL, timeout: TIMEOUT});
+			var bo9 = new bogen.BigObjectGenerator({numberOfFields: FIELDS, min: TOTAL, max: TOTAL+1, timeout: 0});
+			var successive = true;
+			var ok = handler.consume(function(msg, info, finish) {
+				var message = JSON.parse(msg.content);
+				if (message.code !== count) successive = false;
+				check.splice(check.indexOf(message.code), 1);
+				finish();
+				if (++count >= (TOTAL+1)) {
+					assert.equal(counter.confirmationCompleted, 1);
+					handler.cancelConsumer(info).then(lodash.ary(done, 0));
+				}
+			});
+			ok.then(function() {
+				var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
+				setTimeout(function() {
+					bo9.next().then(function(data) {
+						debugx.enabled && debugx('produce() - inserting data');
+						handler.produce(data).then(function() {
+							debugx.enabled && debugx('produce() - data inserted');
+						});
+					});
+				}, Math.round(100 + TIMEOUT * TOTAL / 2));
+				debugx.enabled && debugx('exhaust() - start');
+				return handler.exhaust(bos);
+			}).then(function() {
+				debugx.enabled && debugx('exhaust() - done');
+			}).catch(function(err) {
+				debugx.enabled && debugx('exhaust() - error');
+				done(err);
 			});
 		});
 	});
