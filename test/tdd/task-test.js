@@ -86,7 +86,6 @@ describe('opflow.task:', function() {
 				});
 			});
 		}).then(function() {
-			// setTimeout(function() { th.remove('task9') }, 500);
 			return th.stop({ timeout: 1000 });
 		}).then(function() {
 			debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));

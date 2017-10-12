@@ -6,9 +6,11 @@ var expect = require('chai').expect;
 var debugx = require('debug')('tdd:opflow:LogTracer');
 var freshy = require('freshy');
 
-var OpflowLogTracer = freshy.reload('../../lib/log_tracer');
+var OpflowLogTracer = freshy.freshy('../../lib/log_tracer');
 
 describe('opflow.LogTracer:', function() {
+	this.timeout(1000 * 60 * 60);
+
 	describe('libraryInfo:', function() {
 		it('should return library information when get libraryInfo', function() {
 			var libinfo = OpflowLogTracer.libraryInfo;

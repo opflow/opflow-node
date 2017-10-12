@@ -11,6 +11,8 @@ var OpflowBuilder = require('../../lib/builder');
 var Loadsync = require('loadsync');
 
 describe('opflow-builder:', function() {
+	this.timeout(1000 * 60 * 60);
+
 	describe('loadConfig() method:', function() {
 		it('should return the configuration from default config file', function() {
 			var cfg = OpflowBuilder.instance.loadConfig({

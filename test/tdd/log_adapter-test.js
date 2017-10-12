@@ -12,6 +12,8 @@ var LogAdapter = require('../../lib/log_adapter');
 var MockLogger = require('../lab/mock-logger');
 
 describe('opflow.LogAdapter:', function() {
+	this.timeout(1000 * 60 * 60);
+
 	var consoleLog = process.env.OPFLOW_CONLOG;
 	var logIdTreeEnabled = process.env.OPFLOW_LOGIDTREE;
 

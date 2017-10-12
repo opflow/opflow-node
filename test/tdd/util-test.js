@@ -9,6 +9,8 @@ var misc = require('../../lib/util');
 var LogAdapter = require('../../lib/log_adapter');
 
 describe('opflow.util:', function() {
+	this.timeout(1000 * 60 * 60);
+
 	it('should build default URI from empty parameters', function() {
 		var args = misc.buildURI();
 		assert.equal(args.uri, 'amqp://localhost');
