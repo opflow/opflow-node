@@ -5,6 +5,7 @@ var lodash = require('lodash');
 var Readable = require('stream').Readable;
 var util = require('util');
 var faker = require('faker');
+var misc = require('../../lib/util');
 
 var helper = {
 	FIELDS: parseInt(process.env.BOG_FIELDS),
@@ -48,7 +49,7 @@ BigObjectStreamify.prototype._read = function() {
 		if (obj === null) {
 			self.emit('end');
 		} else {
-			self.push(obj);
+			self.push(misc.bufferify(obj));
 		}
 		return obj;
 	}).catch(function(error) {
