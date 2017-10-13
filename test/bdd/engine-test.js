@@ -439,11 +439,18 @@ describe('opflow-engine:', function() {
 			var index = 0;
 			var check = lodash.range(TOTAL);
 			var bog = new bogen.BigObjectGenerator({numberOfFields: FIELDS, max: TOTAL, timeout: TIMEOUT});
+			var objectIdCount = 0;
 			handler.consume(function(msg, info, finish) {
+				var headers = msg.properties.headers;
+				var objectId = headers['objectId'];
+				if (lodash.isString(objectId) && objectId.length > 0) {
+					objectIdCount++;
+				}
 				var message = JSON.parse(msg.content);
 				check.splice(check.indexOf(message.code), 1);
 				finish();
 				if (++index >= TOTAL) {
+					assert.equal(objectIdCount, TOTAL);
 					handler.cancelConsumer(info).then(lodash.ary(done, 0));
 				}
 			}, queue).then(function() {
