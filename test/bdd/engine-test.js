@@ -59,6 +59,18 @@ describe('opflow-engine:', function() {
 				message: 'unlockConsumer() - release mutex',
 				fieldName: 'consumerUnlocked'
 			}, {
+				message: 'produce() a message to exchange/queue',
+				fieldName: 'produceInvoked'
+			}, {
+				message: 'produce() channel is writable, msg has been sent',
+				fieldName: 'produceSent'
+			}, {
+				message: 'produce() channel is overflowed, waiting',
+				fieldName: 'produceOverflowed'
+			}, {
+				message: 'produce() channel is drained, flushed',
+				fieldName: 'produceDrained'
+			}, {
 				message: 'produce() confirmation has failed',
 				fieldName: 'confirmationFailed'
 			}, {
@@ -104,8 +116,10 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			handler.close().then(function() {
-				debugx.enabled && debugx('COUNTER: ' + JSON.stringify(counter));
-				assert.equal(counter.connectionCreated, counter.connectionDestroyed);
+				debugx.enabled && debugx('logCounter: ' + JSON.stringify(counter));
+				if (LogTracer.isInterceptorEnabled) {
+					assert.equal(counter.connectionCreated, counter.connectionDestroyed);
+				}
 				done();
 			});
 		});
@@ -187,6 +201,137 @@ describe('opflow-engine:', function() {
 						return handler.produce(randobj);
 					});
 				});
+			});
+		});
+	});
+
+	describe('close() method:', function() {
+		var handler;
+		var executor;
+		var queue = {
+			queueName: 'tdd-opflow-queue',
+			durable: true,
+			noAck: true,
+			binding: true
+		};
+
+		before(function(done) {
+			handler = new OpflowEngine(appCfg.extend({
+				confirmation: {}
+			}));
+			executor = new OpflowExecutor({ engine: handler });
+			executor.purgeQueue(queue).then(lodash.ary(done, 0));
+		});
+
+		beforeEach(function(done) {
+			appCfg.checkSkip.call(this);
+			counter = {};
+			handler.ready().then(function() {
+				return executor.purgeQueue(queue);
+			}).then(lodash.ary(done, 0));
+		});
+
+		afterEach(function(done) {
+			debugx.enabled && debugx('logCounter: ' + JSON.stringify(counter));
+			if (LogTracer.isInterceptorEnabled) {
+				assert.equal(counter.connectionCreated, counter.connectionDestroyed);
+				assert.equal(counter.channelCreated, counter.channelDestroyed);
+				assert.equal(counter.confirmChannel, 1);
+				assert.equal(counter.producerLocked, counter.producerUnlocked);
+				assert.equal(counter.consumerLocked, counter.consumerUnlocked);
+			}
+			done();
+		});
+
+		it('close() doest not loose input data (small objects)', function(done) {
+			var total = 1000;
+			var idx = lodash.range(total);
+			var bound = 100;
+			var meter = { sent: 0, received: 0 };
+			var loadsync = new Loadsync([{
+				name: 'handler',
+				cards: ['close', 'error']
+			}]);
+			handler.consume(function(msg, info, finish) {
+				var message = JSON.parse(msg.content.toString());
+				var pos = idx.indexOf(message.code);
+				if (pos >= 0) idx.splice(pos, 1);
+				finish();
+				meter.received += 1;
+				if (meter.received >= total) {
+					debugx.enabled && debugx('All of messages have been processed');
+					assert(idx.length === 0);
+					handler.cancelConsumer(info).then(lodash.ary(done, 0));
+				}
+			}, queue).then(function() {
+				return Promise.map(lodash.range(total), function(k) {
+					if (k === bound) handler.close().finally(function() {
+						loadsync.check('close', 'handler');
+					});
+					return handler.produce({ code: k, msg: 'Hello world' }).then(function(ok) {
+						meter.sent += 1;
+						return ok;
+					});
+				}, { concurrency: 10 });
+			}).catch(function(err) {
+				assert.equal(err.engineState, 'suspended');
+				loadsync.check('error', 'handler');
+				loadsync.ready(function(info) {
+					assert.isBelow(meter.sent, total);
+					assert.isAtLeast(meter.sent, bound);
+					assert.equal(meter.sent, meter.received);
+					assert.equal(meter.received + idx.length, total);
+					debugx.enabled && debugx('Meter: %s', JSON.stringify(meter));
+					done();
+				}, 'handler');
+			});
+		});
+
+		it('close() doest not loose input data (large objects)', function(done) {
+			var total = 200;
+			var index = 0;
+			var bound = 70;
+			var meter = { sent: 0, received: 0 };
+			var loadsync = new Loadsync([{
+				name: 'handler',
+				cards: ['close', 'error']
+			}]);
+			var bog = new bogen.BigObjectGenerator({numberOfFields: 7000, max: total});
+			handler.consume(function(msg, info, finish) {
+				var message = JSON.parse(msg.content);
+				assert(message.code === index++);
+				finish();
+				meter.received++;
+				if (index >= total) {
+					handler.cancelConsumer(info).then(lodash.ary(done, 0));
+				}
+			}, queue).then(function() {
+				return Promise.map(lodash.range(total), function(count) {
+					if (count === bound) handler.close().finally(function() {
+						loadsync.check('close', 'handler');
+					});
+					return bog.next().then(function(randobj) {
+						return handler.produce(randobj).then(function() {
+							meter.sent++;
+						});
+					});
+				}, { concurrency: 5 });
+			}).catch(function(err) {
+				assert.equal(err.engineState, 'suspended');
+				loadsync.check('error', 'handler');
+				loadsync.ready(function(info) {
+					assert.isBelow(meter.sent, total);
+					assert.equal(meter.sent, meter.received);
+					if (LogTracer.isInterceptorEnabled) {
+						counter.produceDrained = counter.produceDrained || 0;
+						counter.produceOverflowed = counter.produceOverflowed || 0;
+						assert.equal(counter.produceInvoked, meter.received);
+						assert.equal(counter.produceInvoked, counter.confirmationCompleted);
+						assert.equal(counter.produceInvoked, counter.produceSent + counter.produceOverflowed);
+						assert.equal(counter.produceOverflowed, counter.produceDrained);
+					}
+					done();
+				}, 'handler');
 			});
 		});
 	});
@@ -331,11 +476,13 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			handler.close().then(function() {
-				debugx.enabled && debugx('COUNTER: ' + JSON.stringify(counter));
-				assert.equal(counter.connectionCreated, counter.connectionDestroyed);
-				assert.equal(counter.channelCreated, counter.channelDestroyed);
-				assert.equal(counter.confirmChannel, 1);
-				assert.equal(counter.producerLocked, counter.producerUnlocked);
+				debugx.enabled && debugx('logCounter: ' + JSON.stringify(counter));
+				if (LogTracer.isInterceptorEnabled) {
+					assert.equal(counter.connectionCreated, counter.connectionDestroyed);
+					assert.equal(counter.channelCreated, counter.channelDestroyed);
+					assert.equal(counter.confirmChannel, 1);
+					assert.equal(counter.producerLocked, counter.producerUnlocked);
+				}
 				done();
 			});
 		});
@@ -424,13 +571,15 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			handler.close().then(function() {
-				debugx.enabled && debugx('COUNTER: ' + JSON.stringify(counter));
-				assert.equal(counter.connectionCreated, counter.connectionDestroyed);
-				assert.equal(counter.channelCreated, counter.channelDestroyed);
-				assert.equal(counter.confirmChannel, 1);
-				assert.equal(counter.confirmStreamCompleted, TOTAL);
-				assert.equal(counter.producerLocked, counter.producerUnlocked);
-				assert.equal(counter.consumerLocked, counter.consumerUnlocked);
+				debugx.enabled && debugx('logCounter: ' + JSON.stringify(counter));
+				if (LogTracer.isInterceptorEnabled) {
+					assert.equal(counter.connectionCreated, counter.connectionDestroyed);
+					assert.equal(counter.channelCreated, counter.channelDestroyed);
+					assert.equal(counter.confirmChannel, 1);
+					assert.equal(counter.confirmStreamCompleted, TOTAL);
+					assert.equal(counter.producerLocked, counter.producerUnlocked);
+					assert.equal(counter.consumerLocked, counter.consumerUnlocked);
+				}
 				done();
 			});
 		});
@@ -476,7 +625,9 @@ describe('opflow-engine:', function() {
 				check.splice(check.indexOf(message.code), 1);
 				finish();
 				if (++count >= (TOTAL+1)) {
-					assert.equal(counter.confirmationCompleted, 1);
+					if (LogTracer.isInterceptorEnabled) {
+						assert.equal(counter.confirmationCompleted, 1);
+					}
 					handler.cancelConsumer(info).then(lodash.ary(done, 0));
 				}
 			});

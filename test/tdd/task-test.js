@@ -57,7 +57,9 @@ describe('opflow.task:', function() {
 			return th.stop({ timeout: 1000 });
 		}).then(function() {
 			debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
-			assert.equal(logCounter.unfinishedTasks, 10);
+			if (LogTracer.isInterceptorEnabled) {
+				assert.equal(logCounter.unfinishedTasks, 10);
+			}
 			done();
 		})
 	});
@@ -89,8 +91,10 @@ describe('opflow.task:', function() {
 			return th.stop({ timeout: 1000 });
 		}).then(function() {
 			debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
-			assert.equal(logCounter.raiseTimeoutCount, 7);
-			assert.equal(logCounter.unfinishedTasks, 3); // 2400, 2700, 3000 (> 2200 ~ 3000 - 800)
+			if (LogTracer.isInterceptorEnabled) {
+				assert.equal(logCounter.raiseTimeoutCount, 7);
+				assert.equal(logCounter.unfinishedTasks, 3); // 2400, 2700, 3000 (> 2200 ~ 3000 - 800)
+			}
 			done();
 		})
 	});
@@ -125,8 +129,10 @@ describe('opflow.task:', function() {
 			return th.stop({ timeout: 1000 });
 		}).then(function() {
 			debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
-			assert.equal(logCounter.raiseTimeoutCount, 7);
-			assert.equal(logCounter.unfinishedTasks, 1); // 2400, 2700, 3000 (> 2200 ~ 3000 - 800)
+			if (LogTracer.isInterceptorEnabled) {
+				assert.equal(logCounter.raiseTimeoutCount, 7);
+				assert.equal(logCounter.unfinishedTasks, 1); // 2400, 2700, 3000 (> 2200 ~ 3000 - 800)
+			}
 			done();
 		})
 	});

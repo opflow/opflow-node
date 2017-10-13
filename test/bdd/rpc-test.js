@@ -186,8 +186,10 @@ describe('opflow-rpc:', function() {
 			}).then(function(results) {
 				lodash.forEach(results, validateResult);
 				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
-				assert.equal(logCounter.rpcRequestTotal, data.length);
-				assert.equal(logCounter.rpcRequestTotal, logCounter.rpcRequestReturned);
+				if (LogTracer.isInterceptorEnabled) {
+					assert.equal(logCounter.rpcRequestTotal, data.length);
+					assert.equal(logCounter.rpcRequestTotal, logCounter.rpcRequestReturned);
+				}
 				done(null);
 			}).catch(function(error) {
 				done(error);
@@ -262,10 +264,12 @@ describe('opflow-rpc:', function() {
 				}, {concurrency: 4});
 			}).then(function(results) {
 				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
-				assert.equal(logCounter.rpcRequestTotal, data.length);
-				assert.equal(logCounter.rpcRequestReturned, data.length - 3);
-				assert.equal(logCounter.extractResultTimeout, 3);
-				assert.equal(logCounter.extractResultCompleted, data.length - 3);
+				if (LogTracer.isInterceptorEnabled) {
+					assert.equal(logCounter.rpcRequestTotal, data.length);
+					assert.equal(logCounter.rpcRequestReturned, data.length - 3);
+					assert.equal(logCounter.extractResultTimeout, 3);
+					assert.equal(logCounter.extractResultCompleted, data.length - 3);
+				}
 				assert.equal(results.length, data.length);
 				Promise.reduce(results, function(acc, result) {
 					if (result.completed) acc.completed += 1;
@@ -372,9 +376,11 @@ describe('opflow-rpc:', function() {
 				assert.equal(acc.completed + acc.failed + acc.timeout, total);
 				assert.equal(acc.timeout, acc.skipped);
 				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
-				assert.equal(logCounter.rpcRequestTotal, total);
-				assert.equal(logCounter.rpcRequestReturned, logCounter.extractResultCompleted);
-				assert.equal(logCounter.rpcRequestReturned + logCounter.extractResultTimeout, logCounter.rpcRequestTotal);
+				if (LogTracer.isInterceptorEnabled) {
+					assert.equal(logCounter.rpcRequestTotal, total);
+					assert.equal(logCounter.rpcRequestReturned, logCounter.extractResultCompleted);
+					assert.equal(logCounter.rpcRequestReturned + logCounter.extractResultTimeout, logCounter.rpcRequestTotal);
+				}
 				done();
 			}).catch(function(error) {
 				done(error);
@@ -475,9 +481,11 @@ describe('opflow-rpc:', function() {
 				assert.equal(acc.completed + acc.failed + acc.timeout, total);
 				assert.equal(acc.timeout, acc.skipped);
 				debugx.enabled && debugx('LogCounter: %s', JSON.stringify(logCounter));
-				assert.equal(logCounter.rpcRequestTotal, total);
-				assert.equal(logCounter.rpcRequestReturned, logCounter.extractResultCompleted);
-				assert.equal(logCounter.rpcRequestReturned + logCounter.extractResultTimeout, logCounter.rpcRequestTotal);
+				if (LogTracer.isInterceptorEnabled) {
+					assert.equal(logCounter.rpcRequestTotal, total);
+					assert.equal(logCounter.rpcRequestReturned, logCounter.extractResultCompleted);
+					assert.equal(logCounter.rpcRequestReturned + logCounter.extractResultTimeout, logCounter.rpcRequestTotal);
+				}
 				done();
 			}).catch(function(error) {
 				done(error);
