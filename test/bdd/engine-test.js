@@ -252,6 +252,14 @@ describe('opflow-engine:', function() {
 				name: 'handler',
 				cards: ['close', 'error']
 			}]);
+			loadsync.ready(function(info) {
+				assert.isBelow(meter.sent, total);
+				assert.isAtLeast(meter.sent, bound);
+				assert.equal(meter.sent, meter.received);
+				assert.equal(meter.received + idx.length, total);
+				debugx.enabled && debugx('Meter: %s', JSON.stringify(meter));
+				done();
+			}, 'handler');
 			handler.consume(function(msg, info, finish) {
 				var message = JSON.parse(msg.content.toString());
 				var pos = idx.indexOf(message.code);
@@ -276,14 +284,6 @@ describe('opflow-engine:', function() {
 			}).catch(function(err) {
 				assert.equal(err.engineState, 'suspended');
 				loadsync.check('error', 'handler');
-				loadsync.ready(function(info) {
-					assert.isBelow(meter.sent, total);
-					assert.isAtLeast(meter.sent, bound);
-					assert.equal(meter.sent, meter.received);
-					assert.equal(meter.received + idx.length, total);
-					debugx.enabled && debugx('Meter: %s', JSON.stringify(meter));
-					done();
-				}, 'handler');
 			});
 		});
 
@@ -296,6 +296,19 @@ describe('opflow-engine:', function() {
 				name: 'handler',
 				cards: ['close', 'error']
 			}]);
+			loadsync.ready(function(info) {
+				assert.isBelow(meter.sent, total);
+				assert.equal(meter.sent, meter.received);
+				if (LogTracer.isInterceptorEnabled) {
+					counter.produceDrained = counter.produceDrained || 0;
+					counter.produceOverflowed = counter.produceOverflowed || 0;
+					assert.equal(counter.produceInvoked, meter.received);
+					assert.equal(counter.produceInvoked, counter.confirmationCompleted);
+					assert.equal(counter.produceInvoked, counter.produceSent + counter.produceOverflowed);
+					assert.equal(counter.produceOverflowed, counter.produceDrained);
+				}
+				done();
+			}, 'handler');
 			var bog = new bogen.BigObjectGenerator({numberOfFields: 7000, max: total});
 			handler.consume(function(msg, info, finish) {
 				var message = JSON.parse(msg.content);
@@ -319,19 +332,6 @@ describe('opflow-engine:', function() {
 			}).catch(function(err) {
 				assert.equal(err.engineState, 'suspended');
 				loadsync.check('error', 'handler');
-				loadsync.ready(function(info) {
-					assert.isBelow(meter.sent, total);
-					assert.equal(meter.sent, meter.received);
-					if (LogTracer.isInterceptorEnabled) {
-						counter.produceDrained = counter.produceDrained || 0;
-						counter.produceOverflowed = counter.produceOverflowed || 0;
-						assert.equal(counter.produceInvoked, meter.received);
-						assert.equal(counter.produceInvoked, counter.confirmationCompleted);
-						assert.equal(counter.produceInvoked, counter.produceSent + counter.produceOverflowed);
-						assert.equal(counter.produceOverflowed, counter.produceDrained);
-					}
-					done();
-				}, 'handler');
 			});
 		});
 	});
@@ -541,7 +541,7 @@ describe('opflow-engine:', function() {
 		});
 	});
 
-	describe('exhaust():', function() {
+	describe('exhaust() method:', function() {
 		var FIELDS = bogen.FIELDS || 10000;
 		var TOTAL = bogen.TOTAL || 1000;
 		var TIMEOUT = bogen.TIMEOUT || 0;
