@@ -76,6 +76,9 @@ describe('opflow-engine:', function() {
 			}, {
 				message: 'produce() confirmation has completed',
 				fieldName: 'confirmationCompleted'
+			}, {
+				message: 'Stream pipeline is interrupted',
+				fieldName: 'couplingStreamClosed'
 			}], logobj);
 		});
 	});

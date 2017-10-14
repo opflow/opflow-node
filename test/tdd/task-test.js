@@ -35,105 +35,107 @@ describe('opflow.task:', function() {
 		LogTracer.clearStringifyInterceptors();
 	});
 
-	it('all of timeout tasks will be save when TimeoutHandler is stopping', function(done) {
-		logCounter = {};
-		var tasks = {};
-		var th = new TimeoutHandler({
-			monitorId: misc.getUUID(),
-			interval: 10,
-			timeout: 2000,
-			tasks: tasks,
-			raiseTimeout: function(done) {
-				done();
-			}
-		});
-		th.start();
-		Promise.resolve().then(function() {
-			lodash.range(10).forEach(function(i) {
-				th.add('task' + i, {});
+	describe('TimeoutHandler:', function() {
+		it('all of timeout tasks will be save when TimeoutHandler is stopping', function(done) {
+			logCounter = {};
+			var tasks = {};
+			var th = new TimeoutHandler({
+				monitorId: misc.getUUID(),
+				interval: 10,
+				timeout: 2000,
+				tasks: tasks,
+				raiseTimeout: function(done) {
+					done();
+				}
 			});
-			return Promise.resolve().delay(700);
-		}).then(function() {
-			return th.stop({ timeout: 1000 });
-		}).then(function() {
-			debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
-			if (LogTracer.isInterceptorEnabled) {
-				assert.equal(logCounter.unfinishedTasks, 10);
-			}
-			done();
-		})
-	});
-
-	it('3 latest tasks will be unfinished and save when TimeoutHandler stopped', function(done) {
-		logCounter = {};
-		var timeoutCount = 0;
-		var tasks = {};
-		var th = new TimeoutHandler({
-			monitorId: misc.getUUID(),
-			interval: 10,
-			timeout: 800,
-			tasks: tasks,
-			raiseTimeout: function(done) {
-				timeoutCount += 1;
-				done();
-			}
-		});
-		th.start();
-		Promise.resolve().then(function() {
-			return Promise.map(lodash.range(10), function(i) {
-				return Promise.resolve().delay(300 * (i + 1)).then(function() {
-					debugx.enabled && debugx('#: %s', i);
-					th.add('task' + i, { number: i });
-					return true;
+			th.start();
+			Promise.resolve().then(function() {
+				lodash.range(10).forEach(function(i) {
+					th.add('task' + i, {});
 				});
-			});
-		}).then(function() {
-			return th.stop({ timeout: 1000 });
-		}).then(function() {
-			debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
-			if (LogTracer.isInterceptorEnabled) {
-				assert.equal(logCounter.raiseTimeoutCount, 7);
-				assert.equal(logCounter.unfinishedTasks, 3); // 2400, 2700, 3000 (> 2200 ~ 3000 - 800)
-			}
-			done();
-		})
-	});
-
-	it('the latest task will be unfinished and save when TimeoutHandler stopped', function(done) {
-		logCounter = {};
-		var timeoutCount = 0;
-		var tasks = {};
-		var th = new TimeoutHandler({
-			monitorId: misc.getUUID(),
-			interval: 10,
-			timeout: 800,
-			tasks: tasks,
-			raiseTimeout: function(done) {
-				timeoutCount += 1;
+				return Promise.resolve().delay(700);
+			}).then(function() {
+				return th.stop({ timeout: 1000 });
+			}).then(function() {
+				debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
+				if (LogTracer.isInterceptorEnabled) {
+					assert.equal(logCounter.unfinishedTasks, 10);
+				}
 				done();
-			}
+			})
 		});
-		th.start();
-		Promise.resolve().then(function() {
-			return Promise.map(lodash.range(10), function(i) {
-				return Promise.resolve().delay(300 * (i + 1)).then(function() {
-					debugx.enabled && debugx('#: %s', i);
-					th.add('task' + i, { number: i });
-					return true;
-				});
+
+		it('3 latest tasks will be unfinished and save when TimeoutHandler stopped', function(done) {
+			logCounter = {};
+			var timeoutCount = 0;
+			var tasks = {};
+			var th = new TimeoutHandler({
+				monitorId: misc.getUUID(),
+				interval: 10,
+				timeout: 800,
+				tasks: tasks,
+				raiseTimeout: function(done) {
+					timeoutCount += 1;
+					done();
+				}
 			});
-		}).then(function() {
-			setTimeout(function() { th.remove('task7') }, 500);
-			setTimeout(function() { th.remove('task8') }, 800);
-			setTimeout(function() { th.remove('task9') }, 1100);
-			return th.stop({ timeout: 1000 });
-		}).then(function() {
-			debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
-			if (LogTracer.isInterceptorEnabled) {
-				assert.equal(logCounter.raiseTimeoutCount, 7);
-				assert.equal(logCounter.unfinishedTasks, 1); // 2400, 2700, 3000 (> 2200 ~ 3000 - 800)
-			}
-			done();
-		})
+			th.start();
+			Promise.resolve().then(function() {
+				return Promise.map(lodash.range(10), function(i) {
+					return Promise.resolve().delay(300 * (i + 1)).then(function() {
+						debugx.enabled && debugx('#: %s', i);
+						th.add('task' + i, { number: i });
+						return true;
+					});
+				});
+			}).then(function() {
+				return th.stop({ timeout: 1000 });
+			}).then(function() {
+				debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
+				if (LogTracer.isInterceptorEnabled) {
+					assert.equal(logCounter.raiseTimeoutCount, 7);
+					assert.equal(logCounter.unfinishedTasks, 3); // 2400, 2700, 3000 (> 2200 ~ 3000 - 800)
+				}
+				done();
+			})
+		});
+
+		it('the latest task will be unfinished and save when TimeoutHandler stopped', function(done) {
+			logCounter = {};
+			var timeoutCount = 0;
+			var tasks = {};
+			var th = new TimeoutHandler({
+				monitorId: misc.getUUID(),
+				interval: 10,
+				timeout: 800,
+				tasks: tasks,
+				raiseTimeout: function(done) {
+					timeoutCount += 1;
+					done();
+				}
+			});
+			th.start();
+			Promise.resolve().then(function() {
+				return Promise.map(lodash.range(10), function(i) {
+					return Promise.resolve().delay(300 * (i + 1)).then(function() {
+						debugx.enabled && debugx('#: %s', i);
+						th.add('task' + i, { number: i });
+						return true;
+					});
+				});
+			}).then(function() {
+				setTimeout(function() { th.remove('task7') }, 500);
+				setTimeout(function() { th.remove('task8') }, 800);
+				setTimeout(function() { th.remove('task9') }, 1100);
+				return th.stop({ timeout: 1000 });
+			}).then(function() {
+				debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
+				if (LogTracer.isInterceptorEnabled) {
+					assert.equal(logCounter.raiseTimeoutCount, 7);
+					assert.equal(logCounter.unfinishedTasks, 1); // 2400, 2700, 3000 (> 2200 ~ 3000 - 800)
+				}
+				done();
+			})
+		});
 	});
 });
