@@ -77,6 +77,9 @@ describe('opflow-engine:', function() {
 				message: 'produce() confirmation has completed',
 				fieldName: 'confirmationCompleted'
 			}, {
+				message: 'exhaust() add new object to confirmation list',
+				fieldName: 'produceInvoked'
+			}, {
 				message: 'exhaust() confirmation has failed',
 				fieldName: 'confirmStreamFailed'
 			}, {
@@ -331,6 +334,50 @@ describe('opflow-engine:', function() {
 				}, { concurrency: 5 });
 			}).catch(function(err) {
 				assert.equal(err.engineState, 'suspended');
+				loadsync.check('error', 'handler');
+			});
+		});
+
+		it('close() doest not loose input data (streaming)', function(done) {
+			var TIMEOUT = 100;
+			var total = 50;
+			var index = 0;
+			var bound = 2;
+			var meter = { sent: 0, received: 0 };
+			var loadsync = new Loadsync([{
+				name: 'handler',
+				cards: ['close', 'error']
+			}]);
+			loadsync.ready(function(info) {
+				debugx.enabled && debugx('Meter: %s', JSON.stringify(meter));
+				if (LogTracer.isInterceptorEnabled) {
+					counter.produceDrained = counter.produceDrained || 0;
+					counter.produceOverflowed = counter.produceOverflowed || 0;
+					assert.equal(counter.produceInvoked, meter.received);
+					assert.equal(counter.produceInvoked, counter.confirmStreamCompleted);
+				}
+				done();
+			}, 'handler');
+			var bog = new bogen.BigObjectGenerator({numberOfFields: 7000, max: total, timeout: TIMEOUT});
+			var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
+			handler.consume(function(msg, info, finish) {
+				var message = JSON.parse(msg.content);
+				assert(message.code === index++);
+				finish();
+				meter.received++;
+				if (index >= total) {
+					handler.cancelConsumer(info).then(lodash.ary(done, 0));
+				}
+			}, queue).then(function() {
+				setTimeout(function() {
+					handler.close().finally(function() {
+						debugx.enabled && debugx('Engine has been closed');
+						loadsync.check('close', 'handler');
+					});
+				}, 300);
+				return handler.exhaust(bos);
+			}).catch(function(err) {
+				debugx.enabled && debugx('Error: %s', JSON.stringify(err));
 				loadsync.check('error', 'handler');
 			});
 		});
