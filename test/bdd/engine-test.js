@@ -59,7 +59,7 @@ describe('opflow-engine:', function() {
 				message: 'unlockConsumer() - release mutex',
 				fieldName: 'consumerUnlocked'
 			}, {
-				message: 'produce() a message to exchange/queue',
+				message: 'produce() add new object to confirmation list',
 				fieldName: 'produceInvoked'
 			}, {
 				message: 'produce() channel is writable, msg has been sent',
@@ -76,15 +76,6 @@ describe('opflow-engine:', function() {
 			}, {
 				message: 'produce() confirmation has completed',
 				fieldName: 'confirmationCompleted'
-			}, {
-				message: 'exhaust() add new object to confirmation list',
-				fieldName: 'produceInvoked'
-			}, {
-				message: 'exhaust() confirmation has failed',
-				fieldName: 'confirmStreamFailed'
-			}, {
-				message: 'exhaust() confirmation has completed',
-				fieldName: 'confirmStreamCompleted'
 			}], logobj);
 		});
 	});
@@ -354,7 +345,7 @@ describe('opflow-engine:', function() {
 					counter.produceDrained = counter.produceDrained || 0;
 					counter.produceOverflowed = counter.produceOverflowed || 0;
 					assert.equal(counter.produceInvoked, meter.received);
-					assert.equal(counter.produceInvoked, counter.confirmStreamCompleted);
+					assert.equal(counter.produceInvoked, counter.confirmationCompleted);
 				}
 				done();
 			}, 'handler');
@@ -374,8 +365,8 @@ describe('opflow-engine:', function() {
 						debugx.enabled && debugx('Engine has been closed');
 						loadsync.check('close', 'handler');
 					});
-				}, 300);
-				return handler.exhaust(bos);
+				}, 1000);
+				return handler.produce(bos);
 			}).catch(function(err) {
 				debugx.enabled && debugx('Error: %s', JSON.stringify(err));
 				loadsync.check('error', 'handler');
@@ -588,7 +579,7 @@ describe('opflow-engine:', function() {
 		});
 	});
 
-	describe('exhaust() method:', function() {
+	describe('produce() streaming:', function() {
 		var FIELDS = bogen.FIELDS || 10000;
 		var TOTAL = bogen.TOTAL || 1000;
 		var TIMEOUT = bogen.TIMEOUT || 0;
@@ -623,7 +614,7 @@ describe('opflow-engine:', function() {
 					assert.equal(counter.connectionCreated, counter.connectionDestroyed);
 					assert.equal(counter.channelCreated, counter.channelDestroyed);
 					assert.equal(counter.confirmChannel, 1);
-					assert.equal(counter.confirmStreamCompleted, TOTAL);
+					assert.equal(counter.confirmationCompleted, TOTAL);
 					assert.equal(counter.producerLocked, counter.producerUnlocked);
 					assert.equal(counter.consumerLocked, counter.consumerUnlocked);
 				}
@@ -631,7 +622,7 @@ describe('opflow-engine:', function() {
 			});
 		});
 
-		it('emit drain event if the exhaust() is overflowed', function(done) {
+		it('emit drain event if the produce() is overflowed', function(done) {
 			var index = 0;
 			var check = lodash.range(TOTAL);
 			var bog = new bogen.BigObjectGenerator({numberOfFields: FIELDS, max: TOTAL, timeout: TIMEOUT});
@@ -651,11 +642,11 @@ describe('opflow-engine:', function() {
 				}
 			}, queue).then(function() {
 				var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
-				return handler.exhaust(bos);
+				return handler.produce(bos);
 			}).then(function() {
-				debugx.enabled && debugx('exhaust() - done');
+				debugx.enabled && debugx('produce() - done');
 			}).catch(function(err) {
-				debugx.enabled && debugx('exhaust() - error');
+				debugx.enabled && debugx('produce() - error');
 				done(err);
 			});
 		});
@@ -663,18 +654,15 @@ describe('opflow-engine:', function() {
 		it('insert some messages to working stream', function(done) {
 			var count = 0;
 			var check = lodash.range(TOTAL);
-			var bog = new bogen.BigObjectGenerator({numberOfFields: FIELDS, max: TOTAL, timeout: TIMEOUT});
-			var bo9 = new bogen.BigObjectGenerator({numberOfFields: FIELDS, min: TOTAL, max: TOTAL+1, timeout: 0});
+			var bog = new bogen.BigObjectGenerator({numberOfFields: FIELDS, max: TOTAL-1, timeout: TIMEOUT});
+			var bo9 = new bogen.BigObjectGenerator({numberOfFields: FIELDS, min: TOTAL-1, max: TOTAL, timeout: 0});
 			var successive = true;
 			var ok = handler.consume(function(msg, info, finish) {
 				var message = JSON.parse(msg.content);
 				if (message.code !== count) successive = false;
 				check.splice(check.indexOf(message.code), 1);
 				finish();
-				if (++count >= (TOTAL+1)) {
-					if (LogTracer.isInterceptorEnabled) {
-						assert.equal(counter.confirmationCompleted, 1);
-					}
+				if (++count >= (TOTAL)) {
 					handler.cancelConsumer(info).then(lodash.ary(done, 0));
 				}
 			});
@@ -688,12 +676,12 @@ describe('opflow-engine:', function() {
 						});
 					});
 				}, Math.round(100 + TIMEOUT * TOTAL / 2));
-				debugx.enabled && debugx('exhaust() - start');
-				return handler.exhaust(bos);
+				debugx.enabled && debugx('produce() - start');
+				return handler.produce(bos);
 			}).then(function() {
-				debugx.enabled && debugx('exhaust() - done');
+				debugx.enabled && debugx('produce() - done');
 			}).catch(function(err) {
-				debugx.enabled && debugx('exhaust() - error');
+				debugx.enabled && debugx('produce() - error');
 				done(err);
 			});
 		});
