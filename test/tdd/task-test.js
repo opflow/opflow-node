@@ -4,7 +4,9 @@ var Promise = require('bluebird');
 var lodash = require('lodash');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
+var streamBuffers = require('stream-buffers');
 var debugx = require('debug')('tdd:opflow:task');
+var PayloadReader = require('../../lib/task').PayloadReader;
 var TimeoutHandler = require('../../lib/task').TimeoutHandler;
 var LogAdapter = require('../../lib/log_adapter');
 var LogTracer = require('../../lib/log_tracer');
@@ -15,27 +17,32 @@ describe('opflow.task:', function() {
 	this.timeout(1000 * 60 * 60);
 
 	var logCounter = {};
-	before(function() {
-		LogTracer.clearStringifyInterceptors();
-		LogTracer.addStringifyInterceptor(function(logobj) {
-			appCfg.updateCounter(logCounter, [{
-				message: 'TimeoutHandler checking loop is invoked',
-				fieldName: 'checkingCount'
-			}, {
-				message: 'TimeoutHandler will be stopped, SAVE UNFINISHED TASKS',
-				fieldName: 'unfinishedTasks'
-			}, {
-				message: 'TimeoutHandler task is timeout, event will be raised',
-				fieldName: 'raiseTimeoutCount'
-			}], logobj);
-		});
-	});
-
-	after(function() {
-		LogTracer.clearStringifyInterceptors();
-	});
 
 	describe('TimeoutHandler:', function() {
+		before(function() {
+			LogTracer.clearStringifyInterceptors();
+			LogTracer.addStringifyInterceptor(function(logobj) {
+				appCfg.updateCounter(logCounter, [{
+					message: 'TimeoutHandler checking loop is invoked',
+					fieldName: 'checkingCount'
+				}, {
+					message: 'TimeoutHandler will be stopped, SAVE UNFINISHED TASKS',
+					fieldName: 'unfinishedTasks'
+				}, {
+					message: 'TimeoutHandler task is timeout, event will be raised',
+					fieldName: 'raiseTimeoutCount'
+				}], logobj);
+			});
+		});
+
+		after(function() {
+			LogTracer.clearStringifyInterceptors();
+		});
+
+		beforeEach(function() {
+			appCfg.checkSkip.call(this);
+		});
+
 		it('all of timeout tasks will be save when TimeoutHandler is stopping', function(done) {
 			logCounter = {};
 			var tasks = {};
@@ -136,6 +143,71 @@ describe('opflow.task:', function() {
 				}
 				done();
 			})
+		});
+	});
+
+	describe('PayloadReader:', function() {
+		var chunkState = null;
+
+		before(function() {
+			LogTracer.clearStringifyInterceptors();
+			LogTracer.addStringifyInterceptor(function(logobj) {
+				appCfg.updateCounter(logCounter, [{
+					message: 'doAdd() - inserted',
+					fieldName: 'chunkInserted'
+				}, {
+					message: 'doRead() - pushed',
+					fieldName: 'chunkPushed'
+				}, {
+					message: 'doRead() - waiting',
+					fieldName: 'chunkWaiting'
+				}, {
+					message: 'doRead() - skipped',
+					fieldName: 'chunkSkipped'
+				}, {
+					message: 'doEnd() - destination',
+					fieldName: 'chunkFinish'
+				}, {
+					message: 'doEnd() - error',
+					fieldName: 'payloadError'
+				}], logobj);
+				if (logobj.message === 'doRead() - status') {
+					debugx.enabled && debugx('Chunk: %s', JSON.stringify(logobj.state));
+					chunkState = logobj.state;
+				}
+			});
+		});
+
+		after(function() {
+			LogTracer.clearStringifyInterceptors();
+		});
+
+		beforeEach(function() {
+			appCfg.checkSkip.call(this);
+		});
+
+		it('PayloadReader waiting for the lack chunks', function(done) {
+			logCounter = {};
+			var timeoutCount = 0;
+			var writableStream = new streamBuffers.WritableStreamBuffer();
+			var readableStream = new PayloadReader();
+			readableStream.on('end', function() {
+				var text = writableStream.getContentsAsString();
+				assert.equal(text, 'Hello World!');
+				if (LogTracer.isInterceptorEnabled) {
+					debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
+					assert.equal(logCounter.chunkWaiting, 1);
+					assert.equal(logCounter.chunkPushed, logCounter.chunkInserted + 1);
+				}
+				done();
+			});
+			readableStream.pipe(writableStream);
+			readableStream.doAdd(0, 'Hello');
+			readableStream.doAdd(2, 'World!');
+			setTimeout(function() {
+				readableStream.doAdd(1, ' ');
+			}, 2000);
+			readableStream.doEnd();
 		});
 	});
 });
