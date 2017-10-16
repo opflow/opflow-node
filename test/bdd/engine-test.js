@@ -4,10 +4,13 @@ var Promise = require('bluebird');
 var lodash = require('lodash');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
+var through2 = require('through2');
+var streamBuffers = require('stream-buffers');
 var debugx = require('debug')('bdd:opflow:engine');
 var OpflowEngine = require('../../lib/engine');
 var OpflowExecutor = require('../../lib/executor');
 var LogTracer = require('../../lib/log_tracer');
+var misc = require('../../lib/util');
 var appCfg = require('../lab/app-configuration');
 var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
@@ -15,11 +18,11 @@ var Loadsync = require('loadsync');
 describe('opflow-engine:', function() {
 	this.timeout(1000 * 60 * 60);
 
-	var counter = {};
+	var logCounter = {};
 	before(function() {
 		LogTracer.clearStringifyInterceptors();
 		LogTracer.addStringifyInterceptor(function(logobj) {
-			appCfg.updateCounter(counter, [{
+			appCfg.updateCounter(logCounter, [{
 				message: 'getConnection() - connection is created',
 				fieldName: 'connectionCreated'
 			}, {
@@ -105,7 +108,7 @@ describe('opflow-engine:', function() {
 
 		beforeEach(function(done) {
 			appCfg.checkSkip.call(this);
-			counter = {};
+			logCounter = {};
 			handler.ready().then(function() {
 				return executor.purgeQueue(queue);
 			}).then(lodash.ary(done, 0));
@@ -113,9 +116,9 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			handler.close().then(function() {
-				debugx.enabled && debugx('logCounter: ' + JSON.stringify(counter));
+				debugx.enabled && debugx('logCounter: ' + JSON.stringify(logCounter));
 				if (LogTracer.isInterceptorEnabled) {
-					assert.equal(counter.connectionCreated, counter.connectionDestroyed);
+					assert.equal(logCounter.connectionCreated, logCounter.connectionDestroyed);
 				}
 				done();
 			});
@@ -222,20 +225,20 @@ describe('opflow-engine:', function() {
 
 		beforeEach(function(done) {
 			appCfg.checkSkip.call(this);
-			counter = {};
+			logCounter = {};
 			handler.ready().then(function() {
 				return executor.purgeQueue(queue);
 			}).then(lodash.ary(done, 0));
 		});
 
 		afterEach(function(done) {
-			debugx.enabled && debugx('logCounter: ' + JSON.stringify(counter));
+			debugx.enabled && debugx('logCounter: ' + JSON.stringify(logCounter));
 			if (LogTracer.isInterceptorEnabled) {
-				assert.equal(counter.connectionCreated, counter.connectionDestroyed);
-				assert.equal(counter.channelCreated, counter.channelDestroyed);
-				assert.equal(counter.confirmChannel, 1);
-				assert.equal(counter.producerLocked, counter.producerUnlocked);
-				assert.equal(counter.consumerLocked, counter.consumerUnlocked);
+				assert.equal(logCounter.connectionCreated, logCounter.connectionDestroyed);
+				assert.equal(logCounter.channelCreated, logCounter.channelDestroyed);
+				assert.equal(logCounter.confirmChannel, 1);
+				assert.equal(logCounter.producerLocked, logCounter.producerUnlocked);
+				assert.equal(logCounter.consumerLocked, logCounter.consumerUnlocked);
 			}
 			done();
 		});
@@ -297,12 +300,12 @@ describe('opflow-engine:', function() {
 				assert.isBelow(meter.sent, total);
 				assert.equal(meter.sent, meter.received);
 				if (LogTracer.isInterceptorEnabled) {
-					counter.produceDrained = counter.produceDrained || 0;
-					counter.produceOverflowed = counter.produceOverflowed || 0;
-					assert.equal(counter.produceInvoked, meter.received);
-					assert.equal(counter.produceInvoked, counter.confirmationCompleted);
-					assert.equal(counter.produceInvoked, counter.produceSent + counter.produceOverflowed);
-					assert.equal(counter.produceOverflowed, counter.produceDrained);
+					logCounter.produceDrained = logCounter.produceDrained || 0;
+					logCounter.produceOverflowed = logCounter.produceOverflowed || 0;
+					assert.equal(logCounter.produceInvoked, meter.received);
+					assert.equal(logCounter.produceInvoked, logCounter.confirmationCompleted);
+					assert.equal(logCounter.produceInvoked, logCounter.produceSent + logCounter.produceOverflowed);
+					assert.equal(logCounter.produceOverflowed, logCounter.produceDrained);
 				}
 				done();
 			}, 'handler');
@@ -345,20 +348,23 @@ describe('opflow-engine:', function() {
 			loadsync.ready(function(info) {
 				debugx.enabled && debugx('Meter: %s', JSON.stringify(meter));
 				if (LogTracer.isInterceptorEnabled) {
-					counter.produceDrained = counter.produceDrained || 0;
-					counter.produceOverflowed = counter.produceOverflowed || 0;
-					assert.equal(counter.produceInvoked, meter.received);
-					assert.equal(counter.produceInvoked, counter.confirmationCompleted);
+					logCounter.produceDrained = logCounter.produceDrained || 0;
+					logCounter.produceOverflowed = logCounter.produceOverflowed || 0;
+					assert.equal(logCounter.produceInvoked, meter.received);
+					assert.equal(logCounter.produceInvoked, logCounter.confirmationCompleted);
 				}
 				done();
 			}, 'handler');
 			var bog = new bogen.BigObjectGenerator({numberOfFields: 7000, max: total, timeout: TIMEOUT});
 			var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
 			handler.consume(function(msg, info, finish) {
-				var message = JSON.parse(msg.content);
-				assert(message.code === index++);
-				finish();
+				var segmentIndex = misc.getHeaderField(msg.properties.headers, 'segmentIndex');
+				if (segmentIndex !== undefined && segmentIndex >= 0) {
+					var message = JSON.parse(msg.content);
+					assert(message.code === index++);
+				}
 				meter.received++;
+				finish();
 				if (index >= total) {
 					handler.cancelConsumer(info).then(lodash.ary(done, 0));
 				}
@@ -509,7 +515,7 @@ describe('opflow-engine:', function() {
 
 		beforeEach(function(done) {
 			appCfg.checkSkip.call(this);
-			counter = {};
+			logCounter = {};
 			handler.ready().then(function() {
 				return executor.purgeQueue(queue);
 			}).then(lodash.ary(done, 0));
@@ -517,12 +523,12 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			handler.close().then(function() {
-				debugx.enabled && debugx('logCounter: ' + JSON.stringify(counter));
+				debugx.enabled && debugx('logCounter: ' + JSON.stringify(logCounter));
 				if (LogTracer.isInterceptorEnabled) {
-					assert.equal(counter.connectionCreated, counter.connectionDestroyed);
-					assert.equal(counter.channelCreated, counter.channelDestroyed);
-					assert.equal(counter.confirmChannel, 1);
-					assert.equal(counter.producerLocked, counter.producerUnlocked);
+					assert.equal(logCounter.connectionCreated, logCounter.connectionDestroyed);
+					assert.equal(logCounter.channelCreated, logCounter.channelDestroyed);
+					assert.equal(logCounter.confirmChannel, 1);
+					assert.equal(logCounter.producerLocked, logCounter.producerUnlocked);
 				}
 				done();
 			});
@@ -604,7 +610,7 @@ describe('opflow-engine:', function() {
 
 		beforeEach(function(done) {
 			appCfg.checkSkip.call(this);
-			counter = {};
+			logCounter = {};
 			handler.ready().then(function() {
 				return executor.purgeQueue(queue);
 			}).then(lodash.ary(done, 0));
@@ -612,14 +618,13 @@ describe('opflow-engine:', function() {
 
 		afterEach(function(done) {
 			handler.close().then(function() {
-				debugx.enabled && debugx('logCounter: ' + JSON.stringify(counter));
+				debugx.enabled && debugx('logCounter: ' + JSON.stringify(logCounter));
 				if (LogTracer.isInterceptorEnabled) {
-					assert.equal(counter.connectionCreated, counter.connectionDestroyed);
-					assert.equal(counter.channelCreated, counter.channelDestroyed);
-					assert.equal(counter.confirmChannel, 1);
-					assert.equal(counter.confirmationCompleted, TOTAL);
-					assert.equal(counter.producerLocked, counter.producerUnlocked);
-					assert.equal(counter.consumerLocked, counter.consumerUnlocked);
+					assert.equal(logCounter.connectionCreated, logCounter.connectionDestroyed);
+					assert.equal(logCounter.channelCreated, logCounter.channelDestroyed);
+					assert.equal(logCounter.confirmChannel, 1);
+					assert.equal(logCounter.producerLocked, logCounter.producerUnlocked);
+					assert.equal(logCounter.consumerLocked, logCounter.consumerUnlocked);
 				}
 				done();
 			});
@@ -633,14 +638,20 @@ describe('opflow-engine:', function() {
 			handler.consume(function(msg, info, finish) {
 				var headers = msg.properties.headers;
 				var segmentId = headers['segmentId'];
-				if (lodash.isString(segmentId) && segmentId.length > 0) {
-					segmentIdCount++;
+				var segmentIndex = headers['segmentIndex'];
+				if (segmentIndex >= 0) {
+					if (lodash.isString(segmentId) && segmentId.length > 0) {
+						segmentIdCount++;
+					}
+					var message = JSON.parse(msg.content);
+					check.splice(check.indexOf(message.code), 1);
 				}
-				var message = JSON.parse(msg.content);
-				check.splice(check.indexOf(message.code), 1);
 				finish();
-				if (++index >= TOTAL) {
+				if (++index >= TOTAL + 1) {
 					assert.equal(segmentIdCount, TOTAL);
+					if (LogTracer.isInterceptorEnabled) {
+						assert.equal(logCounter.confirmationCompleted, TOTAL + 1);
+					}
 					handler.cancelConsumer(info).then(lodash.ary(done, 0));
 				}
 			}, queue).then(function() {
@@ -661,11 +672,17 @@ describe('opflow-engine:', function() {
 			var bo9 = new bogen.BigObjectGenerator({numberOfFields: FIELDS, min: TOTAL-1, max: TOTAL, timeout: 0});
 			var successive = true;
 			var ok = handler.consume(function(msg, info, finish) {
-				var message = JSON.parse(msg.content);
-				if (message.code !== count) successive = false;
-				check.splice(check.indexOf(message.code), 1);
+				var segmentIndex = misc.getHeaderField(msg.properties.headers, 'segmentIndex');
+				if (segmentIndex !== undefined && segmentIndex >= 0) {
+					var message = JSON.parse(msg.content);
+					if (message.code !== count) successive = false;
+					check.splice(check.indexOf(message.code), 1);
+				}
 				finish();
-				if (++count >= (TOTAL)) {
+				if (++count >= TOTAL + 1) {
+					if (LogTracer.isInterceptorEnabled) {
+						assert.equal(logCounter.confirmationCompleted, TOTAL + 1);
+					}
 					handler.cancelConsumer(info).then(lodash.ary(done, 0));
 				}
 			});
@@ -679,6 +696,118 @@ describe('opflow-engine:', function() {
 						});
 					});
 				}, Math.round(100 + TIMEOUT * TOTAL / 2));
+				debugx.enabled && debugx('produce() - start');
+				return handler.produce(bos);
+			}).then(function() {
+				debugx.enabled && debugx('produce() - done');
+			}).catch(function(err) {
+				debugx.enabled && debugx('produce() - error');
+				done(err);
+			});
+		});
+
+		it('produce/consume payload pipeline (using Readable.read())', function(done) {
+			var FIELDS = 10;
+			var TOTAL = 20;
+			var TIMEOUT = 20;
+			var count = 0;
+			var check = lodash.range(TOTAL);
+			var bog = new bogen.BigObjectGenerator({numberOfFields: FIELDS, max: TOTAL, timeout: TIMEOUT});
+			var ok = handler.consume(function(payloadStream, info, finish) {
+				payloadStream.on('readable', function() {
+					var chunk;
+					while(null !== (chunk = payloadStream.read())) {
+						debugx.enabled && debugx('Object: %s', chunk);
+						var message = JSON.parse(chunk);
+						check.splice(check.indexOf(message.code), 1);
+					}
+				}).on('end', function() {
+					assert.equal(check.length, 0);
+					finish();
+					done();
+				});
+			}, { payloadEnabled: true });
+			ok.then(function() {
+				var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
+				debugx.enabled && debugx('produce() - start');
+				return handler.produce(bos);
+			}).then(function() {
+				debugx.enabled && debugx('produce() - done');
+			}).catch(function(err) {
+				debugx.enabled && debugx('produce() - error');
+				done(err);
+			});
+		});
+
+		it('produce/consume payload pipeline (Using Readable.pipe())', function(done) {
+			var TOTAL = 2;
+			var LENGTH = 20;
+			var TIMEOUT = 20;
+			var count = 0;
+			var check = lodash.range(TOTAL);
+			var ok = handler.consume(function(payloadStream, info, finish) {
+				var writableStream = new streamBuffers.WritableStreamBuffer();
+				payloadStream.on('end', finish)
+				.pipe(writableStream)
+				.on('finish', function () {
+					var text = writableStream.getContentsAsString();
+					assert.equal(text.length, TOTAL * LENGTH);
+					for(var i=0; i<TOTAL; i++) {
+						assert.equal(text.substr(i*LENGTH, LENGTH), lodash.repeat('' + i, LENGTH));
+					}
+					done();
+				});
+			}, { payloadEnabled: true });
+			ok.then(function() {
+				var payloadStream = new streamBuffers.ReadableStreamBuffer();
+				for(var i=0; i<TOTAL; i++) {
+					payloadStream.put(lodash.repeat('' + i, LENGTH));
+				}
+				debugx.enabled && debugx('produce() - start');
+				var promise = handler.produce(payloadStream);
+				payloadStream.stop();
+				return promise;
+			}).then(function() {
+				debugx.enabled && debugx('produce() - done');
+			}).catch(function(err) {
+				debugx.enabled && debugx('produce() - error');
+				done(err);
+			});
+		});
+
+		it('produce/consume payload pipeline (through2.obj())', function(done) {
+			var FIELDS = 10;
+			var TOTAL = 20;
+			var TIMEOUT = 20;
+			var count = 0;
+			var check = lodash.range(TOTAL);
+			var ok = handler.consume(function(payloadStream, info, finish) {
+				var writableStream = new streamBuffers.WritableStreamBuffer();
+				payloadStream
+				.on('end', finish)
+				.pipe(through2(function(chunk, enc, callback) {
+					var message = JSON.parse(chunk);
+					this.push(message.code + ',');
+					callback();
+				}))
+				.pipe(writableStream)
+				.on('finish', function () {
+					var text = writableStream.getContentsAsString();
+					var list = text.split(',').filter(function(t) {
+						return t.length
+					}).map(function(n) {
+						return parseInt(n);
+					});
+					assert.sameMembers(list, lodash.range(TOTAL));
+					debugx.enabled && debugx('Codes: ', JSON.stringify(list));
+					done();
+				});
+			}, { payloadEnabled: true });
+			ok.then(function() {
+				var bog = new bogen.BigObjectGenerator({
+					numberOfFields: FIELDS, max: TOTAL, timeout: TIMEOUT
+				});
+				var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
 				debugx.enabled && debugx('produce() - start');
 				return handler.produce(bos);
 			}).then(function() {
