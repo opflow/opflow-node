@@ -153,8 +153,11 @@ describe('opflow.task:', function() {
 			LogTracer.clearStringifyInterceptors();
 			LogTracer.addStringifyInterceptor(function(logobj) {
 				appCfg.updateCounter(logCounter, [{
-					message: 'doAdd() - inserted',
+					message: 'addChunk() - inserted',
 					fieldName: 'chunkInserted'
+				}, {
+					message: 'addChunk() - skipped',
+					fieldName: 'chunkSkipped'
 				}, {
 					message: 'doRead() - pushed',
 					fieldName: 'chunkPushed'
@@ -162,13 +165,10 @@ describe('opflow.task:', function() {
 					message: 'doRead() - waiting',
 					fieldName: 'chunkWaiting'
 				}, {
-					message: 'doRead() - skipped',
-					fieldName: 'chunkSkipped'
-				}, {
-					message: 'doEnd() - destination',
+					message: 'raiseFinal() - total',
 					fieldName: 'chunkFinish'
 				}, {
-					message: 'doEnd() - error',
+					message: 'raiseError() - error',
 					fieldName: 'payloadError'
 				}], logobj);
 				if (logobj.message === 'doRead() - status') {
@@ -202,12 +202,12 @@ describe('opflow.task:', function() {
 				done();
 			});
 			readableStream.pipe(writableStream);
-			readableStream.doAdd(0, 'Hello');
-			readableStream.doAdd(2, 'World!');
+			readableStream.addChunk(0, 'Hello');
+			readableStream.addChunk(2, 'World!');
 			setTimeout(function() {
-				readableStream.doAdd(1, ' ');
+				readableStream.addChunk(1, ' ');
 			}, 2000);
-			readableStream.doEnd();
+			readableStream.raiseFinal();
 		});
 	});
 });

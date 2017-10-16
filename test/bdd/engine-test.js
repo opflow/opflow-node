@@ -4,7 +4,7 @@ var Promise = require('bluebird');
 var lodash = require('lodash');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
-var through2 = require('through2');
+var miss = require('mississippi');
 var streamBuffers = require('stream-buffers');
 var debugx = require('debug')('bdd:opflow:engine');
 var OpflowEngine = require('../../lib/engine');
@@ -775,7 +775,7 @@ describe('opflow-engine:', function() {
 			});
 		});
 
-		it('produce/consume payload pipeline (through2.obj())', function(done) {
+		it('produce/consume payload pipeline (through())', function(done) {
 			var FIELDS = 10;
 			var TOTAL = 20;
 			var TIMEOUT = 20;
@@ -785,7 +785,7 @@ describe('opflow-engine:', function() {
 				var writableStream = new streamBuffers.WritableStreamBuffer();
 				payloadStream
 				.on('end', finish)
-				.pipe(through2(function(chunk, enc, callback) {
+				.pipe(miss.through(function(chunk, enc, callback) {
 					var message = JSON.parse(chunk);
 					this.push(message.code + ',');
 					callback();
@@ -795,9 +795,7 @@ describe('opflow-engine:', function() {
 					var text = writableStream.getContentsAsString();
 					var list = text.split(',').filter(function(t) {
 						return t.length
-					}).map(function(n) {
-						return parseInt(n);
-					});
+					}).map(lodash.ary(parseInt, 1));
 					assert.sameMembers(list, lodash.range(TOTAL));
 					debugx.enabled && debugx('Codes: ', JSON.stringify(list));
 					done();
