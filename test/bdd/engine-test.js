@@ -649,10 +649,12 @@ describe('opflow-engine:', function() {
 				finish();
 				if (++index >= TOTAL + 1) {
 					assert.equal(segmentIdCount, TOTAL);
-					if (LogTracer.isInterceptorEnabled) {
-						assert.equal(logCounter.confirmationCompleted, TOTAL + 1);
-					}
-					handler.cancelConsumer(info).then(lodash.ary(done, 0));
+					setTimeout(function() {
+						if (LogTracer.isInterceptorEnabled) {
+							assert.equal(logCounter.confirmationCompleted, TOTAL + 1);
+						}
+						handler.cancelConsumer(info).then(lodash.ary(done, 0));
+					}, 500);
 				}
 			}, queue).then(function() {
 				var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
@@ -680,10 +682,12 @@ describe('opflow-engine:', function() {
 				}
 				finish();
 				if (++count >= TOTAL + 1) {
-					if (LogTracer.isInterceptorEnabled) {
-						assert.equal(logCounter.confirmationCompleted, TOTAL + 1);
-					}
-					handler.cancelConsumer(info).then(lodash.ary(done, 0));
+					setTimeout(function() {
+						if (LogTracer.isInterceptorEnabled) {
+							assert.equal(logCounter.confirmationCompleted, TOTAL + 1);
+						}
+						handler.cancelConsumer(info).then(lodash.ary(done, 0));
+					}, 500);
 				}
 			});
 			ok.then(function() {
