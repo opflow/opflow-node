@@ -7,6 +7,7 @@ var expect = require('chai').expect;
 var streamBuffers = require('stream-buffers');
 var debugx = require('debug')('tdd:opflow:task');
 var PayloadReader = require('../../lib/task').PayloadReader;
+var PayloadWriter = require('../../lib/task').PayloadWriter;
 var TimeoutHandler = require('../../lib/task').TimeoutHandler;
 var LogAdapter = require('../../lib/log_adapter');
 var LogTracer = require('../../lib/log_tracer');
@@ -188,10 +189,9 @@ describe('opflow.task:', function() {
 
 		it('PayloadReader waiting for the lack chunks', function(done) {
 			logCounter = {};
-			var timeoutCount = 0;
-			var writableStream = new streamBuffers.WritableStreamBuffer();
 			var readableStream = new PayloadReader();
-			readableStream.on('end', function() {
+			var writableStream = new streamBuffers.WritableStreamBuffer();
+			readableStream.pipe(writableStream).on('finish', function() {
 				var text = writableStream.getContentsAsString();
 				assert.equal(text, 'Hello World!');
 				if (LogTracer.isInterceptorEnabled) {
@@ -201,13 +201,87 @@ describe('opflow.task:', function() {
 				}
 				done();
 			});
-			readableStream.pipe(writableStream);
 			readableStream.addChunk(0, 'Hello');
 			readableStream.addChunk(2, 'World!');
 			setTimeout(function() {
 				readableStream.addChunk(1, ' ');
 			}, 2000);
 			readableStream.raiseFinal();
+		});
+
+		it('emit an "error" event after raiseError()', function(done) {
+			logCounter = {};
+			var readableStream = new PayloadReader();
+			var writableStream = new streamBuffers.WritableStreamBuffer();
+			readableStream
+				.on('error', function(error) {
+					debugx.enabled && debugx('raiseError(): %s', JSON.stringify(error));
+					done();
+				})
+				.pipe(writableStream)
+				.on('finish', function() {
+					done({
+						message: 'PayloadReader.raiseError() should raise an error event'
+					});
+				});
+			readableStream.addChunk(0, 'Hello');
+			readableStream.addChunk(2, 'World!');
+			setTimeout(function() {
+				readableStream.addChunk(1, ' ');
+			}, 2000);
+			readableStream.raiseError({ message: 'Suddenly a random error occurred' });
+		});
+	});
+
+	describe.only('PayloadWriter:', function() {
+		
+		before(function() {
+			LogTracer.clearStringifyInterceptors();
+			LogTracer.addStringifyInterceptor(function(logobj) {
+				appCfg.updateCounter(logCounter, [{
+					message: 'addChunk() - inserted',
+					fieldName: 'chunkInserted'
+				}], logobj);
+			});
+		});
+
+		after(function() {
+			LogTracer.clearStringifyInterceptors();
+		});
+
+		beforeEach(function() {
+			appCfg.checkSkip.call(this);
+		});
+
+		it('emit an "error" event if next() is failed', function(done) {
+			var payloadStream = new streamBuffers.ReadableStreamBuffer();
+			var writableStream = new PayloadWriter(function (chunk, count) {
+				return Promise.reject({
+					message: 'Suddenly a random error occurred'
+				}).delay(1000);
+			});
+			payloadStream.pipe(writableStream).on('error', function(error) {
+				debugx.enabled && debugx('next() error: %s', JSON.stringify(error));
+				done();
+			});
+			payloadStream.put('Hello world');
+			payloadStream.stop();
+		});
+
+		it('emit an "error" event after forceClose()', function(done) {
+			var payloadStream = new streamBuffers.ReadableStreamBuffer();
+			var writableStream = new PayloadWriter(function (chunk, count) {
+				return Promise.resolve().delay(1000);
+			});
+			payloadStream.pipe(writableStream).on('finish', function() {
+				done({ message: 'PayloadWriter.raiseError() should raise an error event' });
+			}).on('error', function(error) {
+				debugx.enabled && debugx('next() error: %s', JSON.stringify(error));
+				done();
+			});
+			payloadStream.put('Hello world');
+			writableStream.forceClose();
+			payloadStream.stop();
 		});
 	});
 });
