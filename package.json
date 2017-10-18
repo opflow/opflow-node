@@ -1,6 +1,6 @@
 {
   "name": "opflow",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Devebot Opflow for Node.js",
   "main": "index.js",
   "scripts": {
@@ -14,8 +14,10 @@
     "collections": "^5.0.7",
     "death": "^1.1.0",
     "debug": "^2.6.8",
+    "js-yaml": "^3.10.0",
     "locks": "^0.2.2",
     "lodash": "^4.17.4",
+    "slugid": "^1.1.0",
     "uuid": "^3.1.0"
   },
   "devDependencies": {
@@ -23,6 +25,8 @@
     "faker": "^4.1.0",
     "freshy": "^1.0.3",
     "loadsync": "^0.1.8",
-    "mocha": "^3.4.2"
+    "mississippi": "^1.3.0",
+    "mocha": "^3.4.2",
+    "stream-buffers": "^3.0.1"
   }
 }
