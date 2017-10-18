@@ -212,7 +212,8 @@ describe('opflow-engine:', function() {
 			queueName: 'tdd-opflow-queue',
 			durable: true,
 			noAck: true,
-			binding: true
+			binding: true,
+			payloadEnabled: false
 		};
 
 		before(function(done) {
@@ -597,7 +598,8 @@ describe('opflow-engine:', function() {
 			queueName: 'tdd-opflow-queue',
 			durable: true,
 			noAck: false,
-			binding: true
+			binding: true,
+			payloadEnabled: false
 		};
 
 		before(function(done) {
@@ -689,7 +691,7 @@ describe('opflow-engine:', function() {
 						handler.cancelConsumer(info).then(lodash.ary(done, 0));
 					}, 500);
 				}
-			});
+			}, { payloadEnabled: false });
 			ok.then(function() {
 				var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
 				setTimeout(function() {

@@ -5,6 +5,7 @@ var lodash = require('lodash');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
 var streamBuffers = require('stream-buffers');
+var miss = require('mississippi');
 var debugx = require('debug')('tdd:opflow:task');
 var PayloadReader = require('../../lib/task').PayloadReader;
 var PayloadWriter = require('../../lib/task').PayloadWriter;
@@ -176,6 +177,10 @@ describe('opflow.task:', function() {
 					debugx.enabled && debugx('Chunk: %s', JSON.stringify(logobj.state));
 					chunkState = logobj.state;
 				}
+				if (logobj.message === 'doRead() - pushed') {
+					logCounter.indices = logCounter.indices || [];
+					logCounter.indices.push(logobj.index);
+				}
 			});
 		});
 
@@ -209,6 +214,34 @@ describe('opflow.task:', function() {
 			readableStream.raiseFinal();
 		});
 
+		it('invoke callback when the chunk has been pushed', function(done) {
+			logCounter = {};
+			var orders = [];
+			var updateOrders = function(data, index) {
+				orders.push(index);
+			}
+			var readableStream = new PayloadReader();
+			var writableStream = new streamBuffers.WritableStreamBuffer();
+			readableStream.pipe(writableStream).on('finish', function() {
+				var text = writableStream.getContentsAsString();
+				assert.equal(text, 'Hello World!');
+				debugx.enabled && debugx('orders: %s', JSON.stringify(orders));
+				assert.sameOrderedMembers(orders, [0, 1, 2]);
+				if (LogTracer.isInterceptorEnabled) {
+					debugx.enabled && debugx('logCounter: %s', JSON.stringify(logCounter));
+					assert.equal(logCounter.chunkWaiting, 1);
+					assert.equal(logCounter.chunkPushed, logCounter.chunkInserted + 1);
+				}
+				done();
+			});
+			readableStream.addChunk(0, 'Hello', updateOrders);
+			readableStream.addChunk(2, 'World!', updateOrders);
+			setTimeout(function() {
+				readableStream.addChunk(1, ' ', updateOrders);
+			}, 2000);
+			readableStream.raiseFinal();
+		});
+
 		it('emit an "error" event after raiseError()', function(done) {
 			logCounter = {};
 			var readableStream = new PayloadReader();
@@ -233,7 +266,7 @@ describe('opflow.task:', function() {
 		});
 	});
 
-	describe.only('PayloadWriter:', function() {
+	describe('PayloadWriter:', function() {
 		
 		before(function() {
 			LogTracer.clearStringifyInterceptors();
