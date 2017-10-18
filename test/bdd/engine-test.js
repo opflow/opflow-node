@@ -375,7 +375,7 @@ describe('opflow-engine:', function() {
 						loadsync.check('close', 'handler');
 					});
 				}, 1000);
-				return handler.produce(bos);
+				return handler.produce(null, null, {payloadStream: bos});
 			}).catch(function(err) {
 				debugx.enabled && debugx('Error: %s', JSON.stringify(err));
 				loadsync.check('error', 'handler');
@@ -647,18 +647,18 @@ describe('opflow-engine:', function() {
 					check.splice(check.indexOf(message.code), 1);
 				}
 				finish();
-				if (++index >= TOTAL + 1) {
+				if (++index >= TOTAL + 2) {
 					assert.equal(segmentIdCount, TOTAL);
 					setTimeout(function() {
 						if (LogTracer.isInterceptorEnabled) {
-							assert.equal(logCounter.confirmationCompleted, TOTAL + 1);
+							assert.equal(logCounter.confirmationCompleted, TOTAL + 2);
 						}
 						handler.cancelConsumer(info).then(lodash.ary(done, 0));
 					}, 500);
 				}
 			}, queue).then(function() {
 				var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
-				return handler.produce(bos);
+				return handler.produce({}, null, { payloadStream: bos });
 			}).then(function() {
 				debugx.enabled && debugx('produce() - done');
 			}).catch(function(err) {
@@ -681,10 +681,10 @@ describe('opflow-engine:', function() {
 					check.splice(check.indexOf(message.code), 1);
 				}
 				finish();
-				if (++count >= TOTAL + 1) {
+				if (++count >= TOTAL + 2) {
 					setTimeout(function() {
 						if (LogTracer.isInterceptorEnabled) {
-							assert.equal(logCounter.confirmationCompleted, TOTAL + 1);
+							assert.equal(logCounter.confirmationCompleted, TOTAL + 2);
 						}
 						handler.cancelConsumer(info).then(lodash.ary(done, 0));
 					}, 500);
@@ -701,7 +701,7 @@ describe('opflow-engine:', function() {
 					});
 				}, Math.round(100 + TIMEOUT * TOTAL / 2));
 				debugx.enabled && debugx('produce() - start');
-				return handler.produce(bos);
+				return handler.produce({}, null, { payloadStream: bos });
 			}).then(function() {
 				debugx.enabled && debugx('produce() - done');
 			}).catch(function(err) {
@@ -717,10 +717,10 @@ describe('opflow-engine:', function() {
 			var count = 0;
 			var check = lodash.range(TOTAL);
 			var bog = new bogen.BigObjectGenerator({numberOfFields: FIELDS, max: TOTAL, timeout: TIMEOUT});
-			var ok = handler.consume(function(payloadStream, info, finish) {
-				payloadStream.on('readable', function() {
+			var ok = handler.consume(function(msg, info, finish) {
+				info.payloadStream.on('readable', function() {
 					var chunk;
-					while(null !== (chunk = payloadStream.read())) {
+					while(null !== (chunk = info.payloadStream.read())) {
 						debugx.enabled && debugx('Object: %s', chunk);
 						var message = JSON.parse(chunk);
 						check.splice(check.indexOf(message.code), 1);
@@ -734,7 +734,7 @@ describe('opflow-engine:', function() {
 			ok.then(function() {
 				var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
 				debugx.enabled && debugx('produce() - start');
-				return handler.produce(bos);
+				return handler.produce({}, null, {payloadStream: bos});
 			}).then(function() {
 				debugx.enabled && debugx('produce() - done');
 			}).catch(function(err) {
@@ -749,9 +749,9 @@ describe('opflow-engine:', function() {
 			var TIMEOUT = 20;
 			var count = 0;
 			var check = lodash.range(TOTAL);
-			var ok = handler.consume(function(payloadStream, info, finish) {
+			var ok = handler.consume(function(msg, info, finish) {
 				var writableStream = new streamBuffers.WritableStreamBuffer();
-				payloadStream.on('end', finish)
+				info.payloadStream.on('end', finish)
 				.pipe(writableStream)
 				.on('finish', function () {
 					var text = writableStream.getContentsAsString();
@@ -768,7 +768,7 @@ describe('opflow-engine:', function() {
 					payloadStream.put(lodash.repeat('' + i, LENGTH));
 				}
 				debugx.enabled && debugx('produce() - start');
-				var promise = handler.produce(payloadStream);
+				var promise = handler.produce({}, null, {payloadStream: payloadStream});
 				payloadStream.stop();
 				return promise;
 			}).then(function() {
@@ -785,9 +785,9 @@ describe('opflow-engine:', function() {
 			var TIMEOUT = 20;
 			var count = 0;
 			var check = lodash.range(TOTAL);
-			var ok = handler.consume(function(payloadStream, info, finish) {
+			var ok = handler.consume(function(msg, info, finish) {
 				var writableStream = new streamBuffers.WritableStreamBuffer();
-				payloadStream
+				info.payloadStream
 				.on('end', finish)
 				.pipe(miss.through(function(chunk, enc, callback) {
 					var message = JSON.parse(chunk);
@@ -811,7 +811,7 @@ describe('opflow-engine:', function() {
 				});
 				var bos = new bogen.BigObjectStreamify(bog, {objectMode: true});
 				debugx.enabled && debugx('produce() - start');
-				return handler.produce(bos);
+				return handler.produce({}, null, {payloadStream: bos});
 			}).then(function() {
 				debugx.enabled && debugx('produce() - done');
 			}).catch(function(err) {
