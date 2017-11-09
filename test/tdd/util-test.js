@@ -6,7 +6,7 @@ var assert = require('chai').assert;
 var expect = require('chai').expect;
 var debugx = require('debug')('tdd:opflow:util');
 var misc = require('../../lib/util');
-var LogAdapter = require('../../lib/log_adapter');
+var LogAdapter = require('logolite').LogAdapter;
 
 describe('opflow.util:', function() {
 	this.timeout(1000 * 60 * 60);

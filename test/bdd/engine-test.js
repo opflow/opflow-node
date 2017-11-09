@@ -9,11 +9,14 @@ var streamBuffers = require('stream-buffers');
 var debugx = require('debug')('bdd:opflow:engine');
 var OpflowEngine = require('../../lib/engine');
 var OpflowExecutor = require('../../lib/executor');
-var LogTracer = require('../../lib/log_tracer');
+var LogTracer = require('logolite').LogTracer;
 var misc = require('../../lib/util');
 var appCfg = require('../lab/app-configuration');
 var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
+
+process.env.LOGOLITE_ALWAYS_ENABLED='all';
+require('logolite').LogConfig.reset();
 
 describe('opflow-engine:', function() {
 	this.timeout(1000 * 60 * 60);

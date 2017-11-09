@@ -10,11 +10,14 @@ var debugx = require('debug')('bdd:opflow:broker');
 var OpflowBuilder = require('../../lib/builder');
 var OpflowCommander = require('../../lib/commander');
 var OpflowServerlet = require('../../lib/serverlet');
-var LogTracer = require('../../lib/log_tracer');
+var LogTracer = require('logolite').LogTracer;
 var appCfg = require('../lab/app-configuration');
 var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
 var Fibonacci = require('../lab/fibonacci').Fibonacci;
+
+process.env.LOGOLITE_ALWAYS_ENABLED='all';
+require('logolite').LogConfig.reset();
 
 describe('opflow-broker:', function() {
 	this.timeout(1000 * 60 * 60);

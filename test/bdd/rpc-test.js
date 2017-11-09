@@ -5,10 +5,15 @@ var lodash = require('lodash');
 var assert = require('chai').assert;
 var expect = require('chai').expect;
 var debugx = require('debug')('bdd:opflow:rpc');
-var opflow = require('../../index');
+var OpflowRpcMaster = require('../../lib/rpc_master');
+var OpflowRpcWorker = require('../../lib/rpc_worker');
 var appCfg = require('../lab/app-configuration');
 var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
+var LogTracer = require('logolite').LogTracer;
+
+process.env.LOGOLITE_ALWAYS_ENABLED='all';
+require('logolite').LogConfig.reset();
 
 var Fibonacci = require('../lab/fibonacci').Fibonacci;
 var fibonacci = require('../lab/fibonacci').fibonacci;
@@ -17,7 +22,6 @@ describe('opflow-rpc:', function() {
 	this.timeout(1000 * 60 * 60);
 
 	var logCounter = {};
-	var LogTracer = opflow.LogTracer;
 	before(function() {
 		LogTracer.clearStringifyInterceptors();
 		LogTracer.addStringifyInterceptor(function(logobj) {
@@ -49,7 +53,7 @@ describe('opflow-rpc:', function() {
 
 		before(function() {
 			masters = lodash.range(2).map(function() {
-				return new opflow.RpcMaster(appCfg.extend({
+				return new OpflowRpcMaster(appCfg.extend({
 					routingKey: 'tdd-opflow-rpc',
 					responseName: 'tdd-opflow-response',
 					monitorTimeout: 2000,
@@ -88,12 +92,12 @@ describe('opflow-rpc:', function() {
 		var master, worker;
 
 		before(function() {
-			master = new opflow.RpcMaster(appCfg.extend({
+			master = new OpflowRpcMaster(appCfg.extend({
 				routingKey: 'tdd-opflow-rpc',
 				responseName: 'tdd-opflow-response',
 				autoinit: false
 			}));
-			worker = new opflow.RpcWorker(appCfg.extend({
+			worker = new OpflowRpcWorker(appCfg.extend({
 				routingKey: 'tdd-opflow-rpc',
 				responseName: 'tdd-opflow-response',
 				operatorName: 'tdd-opflow-operator',
@@ -136,7 +140,7 @@ describe('opflow-rpc:', function() {
 		var master, worker1, worker2;
 
 		before(function() {
-			master = new opflow.RpcMaster(appCfg.extend({
+			master = new OpflowRpcMaster(appCfg.extend({
 				routingKey: 'tdd-opflow-rpc',
 				responseName: 'tdd-opflow-response',
 				monitorTimeout: 6000,
@@ -148,8 +152,8 @@ describe('opflow-rpc:', function() {
 				operatorName: 'tdd-opflow-operator',
 				autoinit: false
 			});
-			worker1 = new opflow.RpcWorker(cfg);
-			worker2 = new opflow.RpcWorker(cfg);
+			worker1 = new OpflowRpcWorker(cfg);
+			worker2 = new OpflowRpcWorker(cfg);
 		});
 
 		beforeEach(function(done) {
@@ -201,7 +205,7 @@ describe('opflow-rpc:', function() {
 		var master, worker1, worker2;
 
 		before(function() {
-			master = new opflow.RpcMaster(appCfg.extend({
+			master = new OpflowRpcMaster(appCfg.extend({
 				routingKey: 'tdd-opflow-rpc',
 				responseName: 'tdd-opflow-response',
 				monitorTimeout: 5000,
@@ -213,8 +217,8 @@ describe('opflow-rpc:', function() {
 				operatorName: 'tdd-opflow-operator',
 				autoinit: false
 			});
-			worker1 = new opflow.RpcWorker(cfg);
-			worker2 = new opflow.RpcWorker(cfg);
+			worker1 = new OpflowRpcWorker(cfg);
+			worker2 = new OpflowRpcWorker(cfg);
 		});
 
 		beforeEach(function(done) {
@@ -290,7 +294,7 @@ describe('opflow-rpc:', function() {
 		var master, worker1, worker2;
 
 		before(function() {
-			master = new opflow.RpcMaster(appCfg.extend({
+			master = new OpflowRpcMaster(appCfg.extend({
 				routingKey: 'tdd-opflow-rpc',
 				responseName: 'tdd-opflow-response',
 				monitorTimeout: 10 * total,
@@ -303,8 +307,8 @@ describe('opflow-rpc:', function() {
 				operatorName: 'tdd-opflow-operator',
 				autoinit: false
 			});
-			worker1 = new opflow.RpcWorker(cfg);
-			worker2 = new opflow.RpcWorker(cfg);
+			worker1 = new OpflowRpcWorker(cfg);
+			worker2 = new OpflowRpcWorker(cfg);
 		});
 
 		beforeEach(function(done) {
@@ -394,7 +398,7 @@ describe('opflow-rpc:', function() {
 
 		before(function() {
 			masters = lodash.range(5).map(function() {
-				return new opflow.RpcMaster(appCfg.extend({
+				return new OpflowRpcMaster(appCfg.extend({
 					routingKey: 'tdd-opflow-rpc',
 					monitorTimeout: 10 * total,
 					progressEnabled: false,
@@ -402,7 +406,7 @@ describe('opflow-rpc:', function() {
 				}))
 			});
 			workers = lodash.range(5).map(function() {
-				return new opflow.RpcWorker(appCfg.extend({
+				return new OpflowRpcWorker(appCfg.extend({
 					routingKey: 'tdd-opflow-rpc',
 					responseName: 'tdd-opflow-response',
 					operatorName: 'tdd-opflow-operator',

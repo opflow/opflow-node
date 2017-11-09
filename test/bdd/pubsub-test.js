@@ -10,6 +10,9 @@ var appCfg = require('../lab/app-configuration');
 var bogen = require('../lab/big-object-generator');
 var Loadsync = require('loadsync');
 
+process.env.LOGOLITE_ALWAYS_ENABLED='all';
+require('logolite').LogConfig.reset();
+
 describe('opflow-pubsub:', function() {
 	this.timeout(1000 * 60 * 60);
 

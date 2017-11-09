@@ -10,10 +10,13 @@ var debugx = require('debug')('tdd:opflow:task');
 var PayloadReader = require('../../lib/task').PayloadReader;
 var PayloadWriter = require('../../lib/task').PayloadWriter;
 var TimeoutHandler = require('../../lib/task').TimeoutHandler;
-var LogAdapter = require('../../lib/log_adapter');
-var LogTracer = require('../../lib/log_tracer');
+var LogAdapter = require('logolite').LogAdapter;
+var LogTracer = require('logolite').LogTracer;
 var misc = require('../../lib/util');
 var appCfg = require('../lab/app-configuration');
+
+process.env.LOGOLITE_ALWAYS_ENABLED='all';
+require('logolite').LogConfig.reset();
 
 describe('opflow.task:', function() {
 	this.timeout(1000 * 60 * 60);
@@ -49,7 +52,7 @@ describe('opflow.task:', function() {
 			logCounter = {};
 			var tasks = {};
 			var th = new TimeoutHandler({
-				monitorId: misc.getUUID(),
+				monitorId: misc.getLogID(),
 				interval: 10,
 				timeout: 2000,
 				tasks: tasks,
@@ -79,7 +82,7 @@ describe('opflow.task:', function() {
 			var timeoutCount = 0;
 			var tasks = {};
 			var th = new TimeoutHandler({
-				monitorId: misc.getUUID(),
+				monitorId: misc.getLogID(),
 				interval: 10,
 				timeout: 800,
 				tasks: tasks,
@@ -114,7 +117,7 @@ describe('opflow.task:', function() {
 			var timeoutCount = 0;
 			var tasks = {};
 			var th = new TimeoutHandler({
-				monitorId: misc.getUUID(),
+				monitorId: misc.getLogID(),
 				interval: 10,
 				timeout: 800,
 				tasks: tasks,
