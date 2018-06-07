@@ -19,6 +19,7 @@
     "logolite": "^0.1.4"
   },
   "devDependencies": {
-    "debug": "^3.1.0"
+    "debug": "^3.1.0",
+    "mocha": "^4.1.0"
   }
 }
